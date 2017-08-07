@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Register New User{% endblock %}
+
+{% block content %}
+    <h1>Please provide the following information:</h1>
+    <form action"/register" method="POST">
+        <Label>First Name*: </Label><input type="text" name="fname" placeholder="First name" required/><br/>
+        <Label>Last Name*: </Label><input type="text" name="lname" placeholder="Last name" required/><br/>
+        <Label>Email*: </Label><input type="text" name="email" placeholder="email" required><br/>
+        <Label>Password*: </Label><input type="password" name="password" placeholder="password" required><br/>
+        <input type='submit' value="Register">
+        <p>Fields with a * are required</p>
+{% endblock %}

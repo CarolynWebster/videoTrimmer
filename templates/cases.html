@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Case List{% endblock %}
+
+{% block content %}
+<table>
+    <tr>
+    <th>Case name</th>
+    </tr>
+    {% for case in cases %}
+    <tr>
+        <!--case name-->
+        <td><a href = '/cases/{{ case[1] }}'>{{ case[0] }}</a></td>
+    </tr>
+    {% endfor %}
+</table>
+    
+
+{% endblock %}
