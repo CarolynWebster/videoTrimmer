@@ -10,7 +10,16 @@ from flask_debugtoolbar import DebugToolbarExtension
 
 from model import db, connect_to_db, User, Video, Case, UserCase, SubClip
 
+from datetime import datetime
+
+import boto3
+
+import os
+
 app = Flask(__name__)
+
+AWS_ACCESS_KEY = os.environ['AWS_ACCESS_KEY']
+AWS_SECRET_KEY = os.environ['AWS_SECRET_KEY']
 
 # Required to use Flask sessions and the debug toolbar
 app.secret_key = "ABC"
@@ -64,9 +73,54 @@ def show_cases():
     return render_template('/cases.html', cases=cases)
 
 
+@app.route('/cases/<case_id>')
+@login_required
+def show_case_vids(case_id):
+    """Show all full videos associated with this case"""
+
+    # vids = Video.query.filter_by(case_id=case_id).all()
+    vids = db.session.query(Video.vid_url, Video.vid_name).filter(Video.case_id==case_id).all()
+    this_case = Case.query.get(case_id)
+
+    return render_template('case-vids.html', videos=vids, case=this_case)
+
 # VIDEOS -----------------------------------------------------------------------
 #sample code to upload video obj
 #quinny = Video(case_id=1, vid_url='https://s3-us-west-1.amazonaws.com/videotrim/quinny.mov', added_by=1, added_at=datetime(2007, 12, 5))
+
+@app.route('/upload-video', methods=["GET"])
+@login_required
+def show_upload_form():
+    """Load form for user to upload new video"""
+
+    case_id = request.args.get('case_id')
+
+    return render_template('upload-video.html', case_id=case_id)
+
+
+@app.route('/upload-video', methods=["POST"])
+@login_required
+def upload_video():
+    """Uploads video to aws"""
+
+    session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
+    s3 = session.resource('s3')
+    video_file = request.files.get("rawvid")
+    video_name = video_file.filename
+    s3.Bucket('videotrim').put_object(Key=video_name, Body=video_file)
+
+    base_url = "https://s3-us-west-1.amazonaws.com/videotrim/"
+
+    whole_url = base_url+video_name
+    date_added = datetime.now()
+
+    new_vid = Video(case_id=1, vid_name=video_name, vid_url=whole_url, added_by=g.current_user.user_id, added_at=date_added)
+    db.session.add(new_vid)
+    db.session.commit()
+
+    return redirect('/cases')
+
+
 
 # USER REGISTRATION/LOGIN-------------------------------------------------------
 @app.route('/register-case', methods=["GET"])

@@ -1,0 +1,15 @@
+
+
+<!-- <form action="http://videotrim.s3.amazonaws.com/" method="post" 
+enctype="multipart/form-data"> -->
+{% extends 'base.html' %}
+{% block title %}Select a video to upload{% endblock %}
+{% block content %}
+<form action="/upload-video" enctype="multipart/form-data" method="POST">
+    <input type="text" name="name" placeholder="Jane Doe"><br/>
+    <input type="date" name="date-taken"><br/>
+    <input type="file" name='rawvid'><br/>
+    <input type="hidden" name='case_id' value={{ case_id }}>
+    <input type="submit">
+</form>
+{% endblock %}

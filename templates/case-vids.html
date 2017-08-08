@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Case List{% endblock %}
+
+{% block content %}
+<h1>Case name: {{ case.case_name }}</h1>
+<a href="/upload-video?case_id={{ case.case_id }}"><button>Upload a new video</button></a>
+<table>
+    <tr>
+    <th>Video name</th>
+    </tr>
+    {% for video in videos %}
+    <tr>
+        <!--case name-->
+        <td><a href = '{{ video[0] }}'>{{ video[1] }}</a></td>
+    </tr>
+    {% endfor %}
+</table>
+    
+
+{% endblock %}

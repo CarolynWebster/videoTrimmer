@@ -74,6 +74,7 @@ class Video(db.Model):
     __tablename__ = "videos"
 
     vid_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    vid_name = db.Column(db.String(75), nullable=False)
     case_id = db.Column(db.Integer, db.ForeignKey('cases.case_id'), nullable=False)
     vid_url = db.Column(db.String(100), nullable=False)
     added_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
