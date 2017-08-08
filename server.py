@@ -8,6 +8,8 @@ from functools import wraps
 
 from flask_debugtoolbar import DebugToolbarExtension
 
+from model import db, connect_to_db, User, Video, Case, UserCase, SubClip
+
 app = Flask(__name__)
 
 # Required to use Flask sessions and the debug toolbar
@@ -26,18 +28,20 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
 @app.before_request
 def pre_process_all_requests():
     """Setup the request context"""
 
-    user_email = session.get('user_email')
-    g.current_user = user_email
+    # get the user id from the session
+    user_id = session.get('user_id')
+    # if there is an id in the session - get the user object
+    if user_id:
+        g.current_user = User.query.get(user_id)
+    # otherwise return None
+    else:
+        g.current_user = None
 
-    # user_id = session.get('user_id')
-    # if user_id:
-    #     g.current_user = User.query.get(user_id)
-    # else:
-    #     g.current_user = None
 
 @app.route('/')
 def homepage():
@@ -45,14 +49,79 @@ def homepage():
 
     return render_template('index.html')
 
+# CASES ------------------------------------------------------------------------
 
 @app.route('/cases')
 @login_required
 def show_cases():
     """Show user a list of cases they are associated with"""
 
-    cases = [('Us v. Them, et al', 123), ('Your mom v. All slams', 456), ('Puppies v. Kittens', 789)]
+    # get all cases associated with the logged in user id
+    cases = db.session.query(Case.case_name, 
+                             UserCase.case_id).join(UserCase).filter(
+                             UserCase.user_id == g.current_user.user_id).all()
+    # cases = [('Us v. Them, et al', 123), ('Your mom v. All slams', 456), ('Puppies v. Kittens', 789)]
     return render_template('/cases.html', cases=cases)
+
+
+# VIDEOS -----------------------------------------------------------------------
+#sample code to upload video obj
+#quinny = Video(case_id=1, vid_url='https://s3-us-west-1.amazonaws.com/videotrim/quinny.mov', added_by=1, added_at=datetime(2007, 12, 5))
+
+# USER REGISTRATION/LOGIN-------------------------------------------------------
+@app.route('/register-case', methods=["GET"])
+@login_required
+def show_case_reg_form():
+    """Show user a form to register a new case"""
+
+    return render_template('/register-case.html')
+
+
+@app.route('/register-case', methods=["POST"])
+@login_required
+def register_case():
+    """Adds a new case to the database"""
+
+    case_name = request.form.get('case_name')
+    other_users = request.form.get('user-list')
+    current_user = g.current_user.email
+
+    #instantiate a new case in the db
+    new_case = Case(case_name=case_name, owner_id=g.current_user.user_id)
+    #prime and commit the case to the db
+    db.session.add(new_case)
+    db.session.commit()
+
+    # now add the userCase associations
+    user_emails = other_users.split(", ")
+    user_emails.append(current_user)
+
+    #get the newly created case obj so we can use it to associate people with it
+    this_case = Case.query.filter_by(case_name=case_name).first()
+
+    for email in user_emails:
+        #check if a user with that email exists already
+        #gets the user object for that email address
+        user_check = User.query.filter_by(email=email).first()
+
+        # if user already exists associate the user with the new case
+        if user_check is None:
+            #if the user is not registered - add them to the database
+            #they can add their password and name when they officially register
+            user = User(email=email)
+            #prime user to be added to db
+            db.session.add(user)
+            #commit user to db
+            db.session.commit()
+            user_check = User.query.filter_by(email=email).first()
+
+        #create an association in the usercases table
+        user_case = UserCase(case_id=this_case.case_id, user_id=user_check.user_id)
+        db.session.add(user_case)
+        db.session.commit()
+
+    return redirect('/cases')
+
 
 @app.route('/login', methods=["POST"])
 def handle_login():
@@ -62,36 +131,26 @@ def handle_login():
     email = request.form.get("email")
     password = request.form.get("password")
 
-    #TEMP - add user to session - will add DB check later
-    session['user_email'] = email
-
-    #set flash message telling them login successful
-    flash("You have successfully logged in")
-
-    return redirect('/cases')
-
     #check if user is in db
-    #user_check = User.query.filter_by(email=email).first()
+    user_check = User.query.filter_by(email=email).first()
 
-    #if user already exists check the password
-    # if user_check:
-    #     if user_check.password == password:
-    #         #set flash message telling them login successful
-    #         flash("You have successfully logged in")
-    #         #add user's email to the session
-    #         session['user_email'] = email
-    #         #get the url for that user's info
-    #         user_url = "/users/" + str(user_check.user_id)
-    #         #send them to their own page
-    #         return redirect(user_url)
-    #     else:
-    #         # tell them the password doesn't match
-    #         flash("That password does not match our records.")
-    #         # redirect back to login so they can try again
-    #         return redirect("/login")
-    # else:
-    #     flash("No user is registered with that email. Please register.")
-    #     return redirect('/register')
+    # if user already exists check the password
+    if user_check:
+        if user_check.password == password:
+            #set flash message telling them login successful
+            flash("You have successfully logged in")
+            #add user's ID num to the session
+            session['user_id'] = user_check.user_id
+            #send them to their own page
+            return redirect('/cases')
+        else:
+            # tell them the password doesn't match
+            flash("That password does not match our records.")
+            # redirect back to login so they can try again
+            return redirect("/")
+    else:
+        flash("No user is registered with that email. Please register.")
+        return redirect('/register')
 
 
 @app.route('/logout')
@@ -122,28 +181,32 @@ def register_user():
     email = request.form.get("email")
     password = request.form.get("password")
 
-    # will add db portion later
-    return redirect('/')
-    # return redirect('/login')
-
     #check if user exists in db
-    # user_check = User.query.filter_by(email=email).first()
-    # if user_check:
-    #     #let us know user exists already
-    #     flash('You have already registered. Please log in.')
-    #     return redirect('/login')
-    # else:
-    #     #create user
-    #     user = User(email=email,
-    #                 password=password,
-    #                 age=age,
-    #                 zipcode=zipcode)
-    #     #prime user to be added to db
-    #     db.session.add(user)
-    #     #commit user to db
-    #     db.session.commit()
+    user_check = User.query.filter_by(email=email).first()
+    if user_check:
+        if user_check.password != None:
+            #let us know user exists already and redirect to homepage to login
+            flash('You have already registered. Please log in.')
+        else:
+            user_check.password = password
+            user_check.fname = fname
+            user_check.lname = lname
 
-    #     return redirect("/")
+            db.session.commit()
+            flash('You have successfully registered. Please log in.')
+
+    else:
+        #create user
+        user = User(email=email,
+                    password=password,
+                    fname=fname,
+                    lname=lname)
+        #prime user to be added to db
+        db.session.add(user)
+        #commit user to db
+        db.session.commit()
+        flash('You have successfully registered. Please log in.')
+    return redirect("/")
 
 
 if __name__ == "__main__":
@@ -152,7 +215,7 @@ if __name__ == "__main__":
     app.debug = True
     app.jinja_env.auto_reload = app.debug  # make sure templates, etc. are not cached in debug mode
 
-    #connect_to_db(app)
+    connect_to_db(app)
 
     # Use the DebugToolbar
     DebugToolbarExtension(app)

@@ -17,8 +17,8 @@
 </head>
 
 <body>
-  {% if 'user_email' in session %}
-    - Logged in as: {{ session['user_email'] }}
+  {% if g.current_user %}
+    Logged in as: {{ g.current_user.fname }} {{ g.current_user.lname }} 
     <button id='login-btn'>Log Out</button>
   {% else %}
     <br/>
@@ -43,4 +43,3 @@
       });
     </script>
 </body>
-</html>
