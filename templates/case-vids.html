@@ -11,7 +11,9 @@
     {% for video in videos %}
     <tr>
         <!--case name-->
-        <td><a href = '{{ video[0] }}'>{{ video[1] }}</a></td>
+        <!--<td><a href = 'trim-video/{{ video[0] }}'>{{ video[1] }}</a></td>-->
+        <td>{{ video[1] }}</td>
+        <td><a href = '/trim-video/{{ video[2] }}'>Trim new clips</a>
     </tr>
     {% endfor %}
 </table>

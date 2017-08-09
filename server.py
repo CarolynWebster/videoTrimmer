@@ -1,4 +1,8 @@
 """Video Trimmer"""
+import imageio
+imageio.plugins.ffmpeg.download()
+
+from moviepy.editor import *
 
 from jinja2 import StrictUndefined
 
@@ -15,6 +19,8 @@ from datetime import datetime
 import boto3
 
 import os
+
+from tempfile import mkstemp
 
 app = Flask(__name__)
 
@@ -79,7 +85,7 @@ def show_case_vids(case_id):
     """Show all full videos associated with this case"""
 
     # vids = Video.query.filter_by(case_id=case_id).all()
-    vids = db.session.query(Video.vid_url, Video.vid_name).filter(Video.case_id==case_id).all()
+    vids = db.session.query(Video.vid_url, Video.vid_name, Video.vid_id).filter(Video.case_id==case_id).all()
     this_case = Case.query.get(case_id)
 
     return render_template('case-vids.html', videos=vids, case=this_case)
@@ -103,6 +109,7 @@ def show_upload_form():
 def upload_video():
     """Uploads video to aws"""
 
+    case_id = request.form.get('case_id')
     session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
     s3 = session.resource('s3')
     video_file = request.files.get("rawvid")
@@ -114,12 +121,68 @@ def upload_video():
     whole_url = base_url+video_name
     date_added = datetime.now()
 
-    new_vid = Video(case_id=1, vid_name=video_name, vid_url=whole_url, added_by=g.current_user.user_id, added_at=date_added)
+    #TO DO - check if video url exists already
+
+    new_vid = Video(case_id=case_id, vid_name=video_name, vid_url=whole_url, added_by=g.current_user.user_id, added_at=date_added)
     db.session.add(new_vid)
     db.session.commit()
 
-    return redirect('/cases')
+    redir_url = '/cases/{}'.format(case_id)
 
+    return redirect(redir_url)
+
+
+@app.route('/trim-video/<vid_id>')
+@login_required
+def trim_video(vid_id):
+    
+    # get video obj from db
+    # TO DO make sure the vid exists
+    vid_to_trim = Video.query.get(vid_id)
+    vid_name = vid_to_trim.vid_name
+
+    #establish connection with s3
+    s3 = boto3.client('s3')
+
+    # Generate the URL to get 'key-name' from 'bucket-name'
+    # this temporarily grants access to the requested video
+    url = s3.generate_presigned_url(
+        ClientMethod='get_object',
+        Params={
+            'Bucket': 'videotrim',
+            'Key': vid_name
+        }
+    )
+
+    # start of moviepy
+    clip_name = vid_name + "Clip"
+    my_clip = VideoFileClip(url)
+    new_clip = my_clip.subclip(t_start=0, t_end=15)
+    new_clip.write_videofile(clip_name, codec="mpeg4")
+
+
+    # s3 = boto3.resource('s3')
+    # BUCKET_NAME = 'videotrim'
+
+    # KEY = vid_to_trim.vid_name
+    # try:
+    #     s3.Bucket(BUCKET_NAME).download_file(KEY, 'my_local_image.jpg')
+    # except botocore.exceptions.ClientError as e:
+    #     if e.response['Error']['Code'] == "404":
+    #         print("The object does not exist.")
+    #     else:
+    #         raise
+
+    #unpack the tempfile obj
+
+    # fd, temp_path = mkstemp()
+    # os.system('some_commande --output %s' % temp_path)
+    # file = open(temp_path, 'r')
+    # data = file.read()
+    # file.close()
+    # os.close(fd)
+    # os.remove(temp_path)
+    # return data
 
 
 # USER REGISTRATION/LOGIN-------------------------------------------------------
