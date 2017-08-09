@@ -20,12 +20,14 @@ import boto3
 
 import os
 
-from tempfile import mkstemp
-
 app = Flask(__name__)
 
 AWS_ACCESS_KEY = os.environ['AWS_ACCESS_KEY']
 AWS_SECRET_KEY = os.environ['AWS_SECRET_KEY']
+
+#aws bucket name
+BUCKET_NAME = 'videotrim'
+
 
 # Required to use Flask sessions and the debug toolbar
 app.secret_key = "ABC"
@@ -114,16 +116,17 @@ def upload_video():
     s3 = session.resource('s3')
     video_file = request.files.get("rawvid")
     video_name = video_file.filename
-    s3.Bucket('videotrim').put_object(Key=video_name, Body=video_file)
+    s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file)
 
-    base_url = "https://s3-us-west-1.amazonaws.com/videotrim/"
+    #base_url = "https://s3-us-west-1.amazonaws.com/videotrim/"
 
-    whole_url = base_url+video_name
+   # whole_url = base_url+video_name
     date_added = datetime.now()
 
     #TO DO - check if video url exists already
 
-    new_vid = Video(case_id=case_id, vid_name=video_name, vid_url=whole_url, added_by=g.current_user.user_id, added_at=date_added)
+    new_vid = Video(case_id=case_id, vid_name=video_name, 
+                    added_by=g.current_user.user_id, added_at=date_added)
     db.session.add(new_vid)
     db.session.commit()
 
@@ -135,43 +138,74 @@ def upload_video():
 @app.route('/trim-video/<vid_id>')
 @login_required
 def trim_video(vid_id):
-    
-    # get video obj from db
-    # TO DO make sure the vid exists
     vid_to_trim = Video.query.get(vid_id)
     vid_name = vid_to_trim.vid_name
 
     #establish connection with s3
-    s3 = boto3.client('s3')
+    s3C = boto3.client('s3')
 
-    # Generate the URL to get 'key-name' from 'bucket-name'
-    # this temporarily grants access to the requested video
-    url = s3.generate_presigned_url(
+    url = s3C.generate_presigned_url(
         ClientMethod='get_object',
         Params={
-            'Bucket': 'videotrim',
+            'Bucket': BUCKET_NAME,
             'Key': vid_name
         }
     )
 
-    # start of moviepy
-    clip_name = vid_name + "Clip"
-    my_clip = VideoFileClip(url)
-    new_clip = my_clip.subclip(t_start=0, t_end=15)
-    new_clip.write_videofile(clip_name, codec="mpeg4")
+    return render_template('trim-form.html', vid_id=vid_id, orig_vid=vid_name, vid_url=url)
 
+@app.route('/make-clips', methods=["POST"])
+def get_clip_source():
+    """Gets the video to be clipped from aws - passes to make-clips function"""
+    
+    # get video obj from db
+    # TO DO make sure the vid exists
+    vid_to_trim = Video.query.get(request.form.get('vid_id'))
+    vid_name = vid_to_trim.vid_name
 
-    # s3 = boto3.resource('s3')
-    # BUCKET_NAME = 'videotrim'
+    clip_list = request.form.get('clip-list')
+    clips = clip_list.split(", ")
 
-    # KEY = vid_to_trim.vid_name
+    #establish connection with s3
+    s3C = boto3.client('s3')
+
+    # Generate the URL to get 'key-name' from 'bucket-name'
+    # this temporarily grants access to the requested video
+    url = s3C.generate_presigned_url(
+        ClientMethod='get_object',
+        Params={
+            'Bucket': BUCKET_NAME,
+            'Key': vid_name
+        }
+    )
+
+    s3R = boto3.resource('s3')
+    save_loc = 'static/temp/'+vid_name
     # try:
-    #     s3.Bucket(BUCKET_NAME).download_file(KEY, 'my_local_image.jpg')
+    s3R.Bucket(BUCKET_NAME).download_file(vid_name, save_loc, Callback=make_clips(save_loc, clips))
     # except botocore.exceptions.ClientError as e:
     #     if e.response['Error']['Code'] == "404":
     #         print("The object does not exist.")
     #     else:
     #         raise
+
+
+    # for clip in clips:
+    #     clip = clip.split('-')
+    #     clip_name = trimmed_name + "_clip_" + str(i) + ".mov"
+    #     new_clip = my_clip.subclip(t_start=clip[0], t_end=clip[1])
+    #     new_clip.write_videofile(clip_name, codec="mpeg4")
+    
+    
+
+    # start of moviepy
+    # clip_name = "Clip" + vid_name
+    # my_clip = VideoFileClip(url)
+    # new_clip = my_clip.subclip(t_start=0, t_end=15)
+    # new_clip.write_videofile(clip_name, codec="mpeg4")
+
+
+    
 
     #unpack the tempfile obj
 
@@ -183,7 +217,47 @@ def trim_video(vid_id):
     # os.close(fd)
     # os.remove(temp_path)
     # return data
+    return redirect('videos')
 
+
+def make_clips(file_loc, clips):
+    """Makes the designated clips once the file is downloaded"""
+
+    #make a videoFileClip object using temp location path from make-clips route
+    my_clip = VideoFileClip(file_loc)
+    
+    # trim path to remove the file ext
+    clip_name_base = file_loc[0:-4]
+    
+    # save the ext separately
+    file_ext = file_loc[-4:]
+    
+    # make a list to hold the new clips so we can upload at the end
+    clips_to_upload = []
+    
+    # loop through the clips list and make clips for all the time codes given
+    for clip in clips:
+        # split the start and end times
+        clip = clip.split('-')
+        # replace the : with _ since the : cause a filename issue
+        start_time = clip[0].replace(":", "_")
+        end_time = clip[1].replace(":", "_")
+        # stitch together base name with times in file name
+        clip_name = clip_name_base + "-" + start_time + "-" + end_time + file_ext
+        # add to the list of files to upload
+        clips_to_upload.append(clip_name)
+        # create the new subclip
+        new_clip = my_clip.subclip(t_start=clip[0], t_end=clip[1])
+        # save the clip to our temp file location
+        new_clip.write_videofile(clip_name, codec="mpeg4")
+        
+        # checks to see if the clip is done being written
+        while os.path.isfile(clip_name) is not True:
+            print "saving"
+
+    
+
+    
 
 # USER REGISTRATION/LOGIN-------------------------------------------------------
 @app.route('/register-case', methods=["GET"])

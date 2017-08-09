@@ -12,8 +12,9 @@
     <tr>
         <!--case name-->
         <!--<td><a href = 'trim-video/{{ video[0] }}'>{{ video[1] }}</a></td>-->
-        <td>{{ video[1] }}</td>
-        <td><a href = '/trim-video/{{ video[2] }}'>Trim new clips</a>
+        <td><a href = '/show-video/{{ video[2] }}' target='_blank'>{{ video[1] }}</td></a>
+        <td><a href = '/trim-video/{{ video[2] }}'>Trim new clips</a></td>
+        <td><a href = '/see-clips/{{ video[2] }}'>See existing clips</a></td>
     </tr>
     {% endfor %}
 </table>
