@@ -87,10 +87,63 @@ def show_case_vids(case_id):
     """Show all full videos associated with this case"""
 
     # vids = Video.query.filter_by(case_id=case_id).all()
-    vids = db.session.query(Video.vid_url, Video.vid_name, Video.vid_id).filter(Video.case_id==case_id).all()
+    vids = db.session.query(Video.vid_name, Video.vid_id).filter(Video.case_id==case_id).all()
     this_case = Case.query.get(case_id)
 
     return render_template('case-vids.html', videos=vids, case=this_case)
+
+@app.route('/register-case', methods=["GET"])
+@login_required
+def show_case_reg_form():
+    """Show user a form to register a new case"""
+
+    return render_template('/register-case.html')
+
+
+@app.route('/register-case', methods=["POST"])
+@login_required
+def register_case():
+    """Adds a new case to the database"""
+
+    case_name = request.form.get('case_name')
+    other_users = request.form.get('user-list')
+    current_user = g.current_user.email
+
+    #instantiate a new case in the db
+    new_case = Case(case_name=case_name, owner_id=g.current_user.user_id)
+    #prime and commit the case to the db
+    db.session.add(new_case)
+    db.session.commit()
+
+    # now add the userCase associations
+    user_emails = other_users.split(", ")
+    user_emails.append(current_user)
+
+    #get the newly created case obj so we can use it to associate people with it
+    this_case = Case.query.filter_by(case_name=case_name).first()
+
+    for email in user_emails:
+        #check if a user with that email exists already
+        #gets the user object for that email address
+        user_check = User.query.filter_by(email=email).first()
+
+        # if user already exists associate the user with the new case
+        if user_check is None:
+            #if the user is not registered - add them to the database
+            #they can add their password and name when they officially register
+            user = User(email=email)
+            #prime user to be added to db
+            db.session.add(user)
+            #commit user to db
+            db.session.commit()
+            user_check = User.query.filter_by(email=email).first()
+
+        #create an association in the usercases table
+        user_case = UserCase(case_id=this_case.case_id, user_id=user_check.user_id)
+        db.session.add(user_case)
+        db.session.commit()
+
+    return redirect('/cases')
 
 # VIDEOS -----------------------------------------------------------------------
 #sample code to upload video obj
@@ -160,8 +213,12 @@ def get_clip_source():
     
     # get video obj from db
     # TO DO make sure the vid exists
-    vid_to_trim = Video.query.get(request.form.get('vid_id'))
+    vid_id = request.form.get('vid_id')
+    vid_to_trim = Video.query.get(vid_id)
     vid_name = vid_to_trim.vid_name
+
+    #get the user id
+    user_id = g.current_user.user_id
 
     clip_list = request.form.get('clip-list')
     clips = clip_list.split(", ")
@@ -181,46 +238,16 @@ def get_clip_source():
 
     s3R = boto3.resource('s3')
     save_loc = 'static/temp/'+vid_name
-    # try:
-    s3R.Bucket(BUCKET_NAME).download_file(vid_name, save_loc, Callback=make_clips(save_loc, clips))
-    # except botocore.exceptions.ClientError as e:
-    #     if e.response['Error']['Code'] == "404":
-    #         print("The object does not exist.")
-    #     else:
-    #         raise
+    # if the file isn't already in temp download it
+    if not os.path.isfile(save_loc):
+        s3R.Bucket(BUCKET_NAME).download_file(vid_name, save_loc, Callback=make_clips(save_loc, clips, vid_id, user_id))
+    else:
+        make_clips(save_loc, clips, vid_id, user_id)
+
+    return redirect('/show-clips/{}'.format(vid_id))
 
 
-    # for clip in clips:
-    #     clip = clip.split('-')
-    #     clip_name = trimmed_name + "_clip_" + str(i) + ".mov"
-    #     new_clip = my_clip.subclip(t_start=clip[0], t_end=clip[1])
-    #     new_clip.write_videofile(clip_name, codec="mpeg4")
-    
-    
-
-    # start of moviepy
-    # clip_name = "Clip" + vid_name
-    # my_clip = VideoFileClip(url)
-    # new_clip = my_clip.subclip(t_start=0, t_end=15)
-    # new_clip.write_videofile(clip_name, codec="mpeg4")
-
-
-    
-
-    #unpack the tempfile obj
-
-    # fd, temp_path = mkstemp()
-    # os.system('some_commande --output %s' % temp_path)
-    # file = open(temp_path, 'r')
-    # data = file.read()
-    # file.close()
-    # os.close(fd)
-    # os.remove(temp_path)
-    # return data
-    return redirect('videos')
-
-
-def make_clips(file_loc, clips):
+def make_clips(file_loc, clips, vid_id, user_id):
     """Makes the designated clips once the file is downloaded"""
 
     #make a videoFileClip object using temp location path from make-clips route
@@ -244,74 +271,58 @@ def make_clips(file_loc, clips):
         end_time = clip[1].replace(":", "_")
         # stitch together base name with times in file name
         clip_name = clip_name_base + "-" + start_time + "-" + end_time + file_ext
+        #get just the filename for the aws key
+        key_name = clip_name[clip_name.rfind('/')-1:]
         # add to the list of files to upload
         clips_to_upload.append(clip_name)
         # create the new subclip
         new_clip = my_clip.subclip(t_start=clip[0], t_end=clip[1])
         # save the clip to our temp file location
         new_clip.write_videofile(clip_name, codec="mpeg4")
-        
-        # checks to see if the clip is done being written
-        while os.path.isfile(clip_name) is not True:
-            print "saving"
-
-    
-
-    
-
-# USER REGISTRATION/LOGIN-------------------------------------------------------
-@app.route('/register-case', methods=["GET"])
-@login_required
-def show_case_reg_form():
-    """Show user a form to register a new case"""
-
-    return render_template('/register-case.html')
-
-
-@app.route('/register-case', methods=["POST"])
-@login_required
-def register_case():
-    """Adds a new case to the database"""
-
-    case_name = request.form.get('case_name')
-    other_users = request.form.get('user-list')
-    current_user = g.current_user.email
-
-    #instantiate a new case in the db
-    new_case = Case(case_name=case_name, owner_id=g.current_user.user_id)
-    #prime and commit the case to the db
-    db.session.add(new_case)
-    db.session.commit()
-
-    # now add the userCase associations
-    user_emails = other_users.split(", ")
-    user_emails.append(current_user)
-
-    #get the newly created case obj so we can use it to associate people with it
-    this_case = Case.query.filter_by(case_name=case_name).first()
-
-    for email in user_emails:
-        #check if a user with that email exists already
-        #gets the user object for that email address
-        user_check = User.query.filter_by(email=email).first()
-
-        # if user already exists associate the user with the new case
-        if user_check is None:
-            #if the user is not registered - add them to the database
-            #they can add their password and name when they officially register
-            user = User(email=email)
-            #prime user to be added to db
-            db.session.add(user)
-            #commit user to db
-            db.session.commit()
-            user_check = User.query.filter_by(email=email).first()
-
-        #create an association in the usercases table
-        user_case = UserCase(case_id=this_case.case_id, user_id=user_check.user_id)
-        db.session.add(user_case)
+        # add the clip to our db
+        db_clip = SubClip(vid_id=vid_id, start_at=clip[0], end_at=clip[1], created_by=user_id, clip_name=key_name)
+        db.session.add(db_clip)
         db.session.commit()
 
-    return redirect('/cases')
+    #establish session with aws
+    session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
+    s3 = session.resource('s3')
+    print "\n\n\n\n\n\n\n", len(clips_to_upload), "\n\n\n\n\n\n\n"
+    while len(clips_to_upload) > 0:
+        # pop the clip from the front of the list
+        clip_path = clips_to_upload.pop(0)
+        # if that file exists in the temp folder - upload it
+        if os.path.isfile(clip_path):
+            video_file = clip_path
+            video_name = clip_path.split('/')
+            video_name = video_name[-1]
+            #s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file, Callback=remove_file(video_file))
+            s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file)
+        else:
+            #if it wasn't done being written yet - add it back to the list
+            clips_to_upload.append(clip_path)
+
+
+@app.route('/show-clips/<vid_id>')
+@login_required
+def show_all_clips(vid_id):
+    """loads page with a list of all clips for that vid id"""
+
+    #video = Video.query.get(vid_id)
+    #get a list of all the clips associated with that video id
+    # TO DO join query to get user name who created clip
+    clips = SubClip.query.filter(SubClip.vid_id == vid_id).all()
+    main_vid = Video.query.get(vid_id)
+
+    return render_template('vid-clips.html', main_vid=main_vid, clips=clips)
+
+
+def remove_file(file_path):
+    """removes file from temp folder once uploaded"""
+    
+    os.remove(file_path)
+
+# USER REGISTRATION/LOGIN-------------------------------------------------------
 
 
 @app.route('/login', methods=["POST"])

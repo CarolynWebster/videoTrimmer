@@ -76,16 +76,16 @@ class Video(db.Model):
     vid_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     vid_name = db.Column(db.String(75), nullable=False)
     case_id = db.Column(db.Integer, db.ForeignKey('cases.case_id'), nullable=False)
-    vid_url = db.Column(db.String(100), nullable=False)
+    # vid_url = db.Column(db.String(100), nullable=False)
     added_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     added_at = db.Column(db.DateTime, nullable=False)
 
     def __repr__(self):
         """useful video info"""
 
-        return "<Video vid_id={} case_id={} url={}".format(self.vid_id,
+        return "<Video vid_id={} case_id={} name={}".format(self.vid_id,
                                                            self.case_id,
-                                                           self.vid_url)
+                                                           self.vid_name)
 
 
 class SubClip(db.Model):
@@ -95,9 +95,10 @@ class SubClip(db.Model):
 
     clip_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     vid_id = db.Column(db.Integer, db.ForeignKey('videos.vid_id'), nullable=False)
+    clip_name = db.Column(db.String(100), nullable=False)
     start_at = db.Column(db.String(20))
     end_at = db.Column(db.String(20))
-    clip_url = db.Column(db.String(100), nullable=False)
+    # clip_url = db.Column(db.String(100), nullable=False)
     created_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
 
 

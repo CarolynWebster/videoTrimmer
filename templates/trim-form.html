@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Create New Clips{% endblock %}
+{% block addToHead %}
+    <link href="http://vjs.zencdn.net/6.2.4/video-js.css" rel="stylesheet">
+    <!-- If you'd like to support IE8 -->
+    <script src="http://vjs.zencdn.net/ie8/1.1.2/videojs-ie8.min.js"></script>
+{% endblock %}
+
+{% block content %}
+    <h1>Please provide the following information:</h1>
+    <h3>Clips are coming from: {{ orig_vid }}</h3>
+    <video id="my-video" class="video-js" controls preload="auto" width="640" height="264" data-setup="{}">
+        <source src="{{ vid_url }}" type='video/mp4'>
+        <p class="vjs-no-js">
+          To view this video please enable JavaScript, and consider upgrading to a web browser that
+          <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
+        </p>
+    </video>
+
+    <form action="/make-clips" method="POST" id='clip_info'>
+        <Label>Please enter the timecodes for the clips you want to create*</Label></br>
+        <p>Format like HH:MM:SS-HH:MM:SS<br/>
+        ex. 01:12:12-1:24:20 will create a 12 min and 8 sec long clip</p>
+        <input type='hidden' name="vid_id" value={{ vid_id }}>
+        <textarea name="clip-list" form="clip_info" placeholder="00:18:04-00:22:20, 01:06:12-01:12:12" required></textarea>
+        <input type='submit' value="Create Clips">
+        <p>Fields with a * are required</p>
+    </form>
+    <!--script for video player-->
+    <script src="http://vjs.zencdn.net/6.2.4/video.js"></script>
+
+{% endblock %}
