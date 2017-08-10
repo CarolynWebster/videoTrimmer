@@ -14,7 +14,7 @@
         <!--video comes in tuples (vid_name, vid_id)-->
         <td><a href = '/show-video/{{ video[1] }}' target='_blank'>{{ video[0] }}</td></a>
         <td><a href = '/trim-video/{{ video[1] }}'>Trim new clips</a></td>
-        <td><a href = '/see-clips/{{ video[1] }}'>See existing clips</a></td>
+        <td><a href = '/clips/{{ video[1] }}'>See existing clips</a></td>
     </tr>
     {% endfor %}
 </table>

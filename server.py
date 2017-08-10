@@ -169,7 +169,11 @@ def upload_video():
     s3 = session.resource('s3')
     video_file = request.files.get("rawvid")
     video_name = video_file.filename
+
+    #s3 = boto3.resource('s3')
+    #s3.Bucket(BUCKET_NAME).upload_file(video_file, video_name)
     s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file)
+    #s3.Object(BUCKET_NAME, video_name).upload_file(video_file)
 
     #base_url = "https://s3-us-west-1.amazonaws.com/videotrim/"
 
@@ -187,7 +191,28 @@ def upload_video():
 
     return redirect(redir_url)
 
+@app.route('/show-video/<vid_id>')
+@login_required
+def show_video(vid_id):
+    vid_to_trim = Video.query.get(vid_id)
+    vid_name = vid_to_trim.vid_name
 
+    #establish connection with s3
+    s3C = boto3.client('s3')
+
+    url = s3C.generate_presigned_url(
+        ClientMethod='get_object',
+        Params={
+            'Bucket': BUCKET_NAME,
+            'Key': vid_name
+        }
+    )
+
+    return render_template('show-video.html', vid_id=vid_id, orig_vid=vid_name, vid_url=url)
+
+
+
+# MAKING CLIPS -----------------------------------------------------------------
 @app.route('/trim-video/<vid_id>')
 @login_required
 def trim_video(vid_id):
@@ -244,7 +269,7 @@ def get_clip_source():
     else:
         make_clips(save_loc, clips, vid_id, user_id)
 
-    return redirect('/show-clips/{}'.format(vid_id))
+    return redirect('/clips/{}'.format(vid_id))
 
 
 def make_clips(file_loc, clips, vid_id, user_id):
@@ -252,16 +277,16 @@ def make_clips(file_loc, clips, vid_id, user_id):
 
     #make a videoFileClip object using temp location path from make-clips route
     my_clip = VideoFileClip(file_loc)
-    
+
     # trim path to remove the file ext
     clip_name_base = file_loc[0:-4]
-    
+
     # save the ext separately
     file_ext = file_loc[-4:]
-    
+
     # make a list to hold the new clips so we can upload at the end
     clips_to_upload = []
-    
+
     # loop through the clips list and make clips for all the time codes given
     for clip in clips:
         # split the start and end times
@@ -303,7 +328,7 @@ def make_clips(file_loc, clips, vid_id, user_id):
             clips_to_upload.append(clip_path)
 
 
-@app.route('/show-clips/<vid_id>')
+@app.route('/clips/<vid_id>')
 @login_required
 def show_all_clips(vid_id):
     """loads page with a list of all clips for that vid id"""
@@ -316,6 +341,24 @@ def show_all_clips(vid_id):
 
     return render_template('vid-clips.html', main_vid=main_vid, clips=clips)
 
+@app.route('/show-clip/<clip_id>')
+@login_required
+def show_clip(clip_id):
+    clip_to_show = SubClip.query.get(clip_id)
+    clip_name = clip_to_show.clip_name
+
+    #establish connection with s3
+    s3C = boto3.client('s3')
+
+    url = s3C.generate_presigned_url(
+        ClientMethod='get_object',
+        Params={
+            'Bucket': BUCKET_NAME,
+            'Key': clip_name
+        }
+    )
+
+    return render_template('show-video.html', vid_id=clip_id, orig_vid=clip_name, vid_url=url)
 
 def remove_file(file_path):
     """removes file from temp folder once uploaded"""

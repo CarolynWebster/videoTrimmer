@@ -5,6 +5,7 @@
 <h1>Video source: {{ main_vid.vid_name }}</h1>
 <table>
     <tr>
+    <th><input type='checkbox' id="select-all"></th>
     <th>Clip name</th>
     <th>Start</th>
     <th>End</th>
@@ -12,7 +13,8 @@
     </tr>
     {% for clip in clips %}
     <tr>
-        <td><a href = '/show-video/{{ clip.clip_id }}' target='_blank'>{{ clip.clip_name }}</td></a>
+        <td><input type='checkbox' name={{ clip.clip_id }}>
+        <td><a href = '/show-clip/{{ clip.clip_id }}' target='_blank'>{{ clip.clip_name }}</td></a>
         <td>{{ clip.start_at }}</td>
         <td>{{ clip.end_at }}</td>
         <td>Name here</td>
