@@ -261,19 +261,20 @@ def get_clip_source():
         }
     )
 
-    s3R = boto3.resource('s3')
+    s3 = boto3.resource('s3')
     save_loc = 'static/temp/'+vid_name
-    # if the file isn't already in temp download it
-    if not os.path.isfile(save_loc):
-        s3R.Bucket(BUCKET_NAME).download_file(vid_name, save_loc, Callback=make_clips(save_loc, clips, vid_id, user_id))
-    else:
+    if os.path.isfile(save_loc):
         make_clips(save_loc, clips, vid_id, user_id)
-
+    else:
+        s3.meta.client.download_file(BUCKET_NAME, vid_name, save_loc, Callback=make_clips(save_loc, clips, vid_id, user_id))
+    
     return redirect('/clips/{}'.format(vid_id))
 
 
 def make_clips(file_loc, clips, vid_id, user_id):
     """Makes the designated clips once the file is downloaded"""
+
+    print "\n\n\n\n\n\n\n\n CALLBACK \n\n\n\n\n\n\n\n\n"
 
     #make a videoFileClip object using temp location path from make-clips route
     my_clip = VideoFileClip(file_loc)
@@ -297,7 +298,7 @@ def make_clips(file_loc, clips, vid_id, user_id):
         # stitch together base name with times in file name
         clip_name = clip_name_base + "-" + start_time + "-" + end_time + file_ext
         #get just the filename for the aws key
-        key_name = clip_name[clip_name.rfind('/')-1:]
+        key_name = clip_name[clip_name.rfind('/')+1:]
         # add to the list of files to upload
         clips_to_upload.append(clip_name)
         # create the new subclip
@@ -312,7 +313,6 @@ def make_clips(file_loc, clips, vid_id, user_id):
     #establish session with aws
     session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
     s3 = session.resource('s3')
-    print "\n\n\n\n\n\n\n", len(clips_to_upload), "\n\n\n\n\n\n\n"
     while len(clips_to_upload) > 0:
         # pop the clip from the front of the list
         clip_path = clips_to_upload.pop(0)
@@ -321,11 +321,17 @@ def make_clips(file_loc, clips, vid_id, user_id):
             video_file = clip_path
             video_name = clip_path.split('/')
             video_name = video_name[-1]
+            print "\n\n\n\n\n\n\n", video_file, video_name, "\n\n\n\n\n\n\n"
+            s3.meta.client.upload_file(video_file, BUCKET_NAME, video_name, Callback=file_done())
+            #s3.Bucket(BUCKET_NAME).upload_file(video_file, video_name)
             #s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file, Callback=remove_file(video_file))
-            s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file)
+            #s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file)
         else:
             #if it wasn't done being written yet - add it back to the list
             clips_to_upload.append(clip_path)
+
+def file_done():
+    print "\n\n\n\n\n\n\n FILE DONE \n\n\n\n\n\n\n"
 
 
 @app.route('/clips/<vid_id>')
@@ -344,6 +350,8 @@ def show_all_clips(vid_id):
 @app.route('/show-clip/<clip_id>')
 @login_required
 def show_clip(clip_id):
+    """Plays the clip in a separate window"""
+
     clip_to_show = SubClip.query.get(clip_id)
     clip_name = clip_to_show.clip_name
 

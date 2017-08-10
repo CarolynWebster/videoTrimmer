@@ -7,8 +7,7 @@
 {% endblock %}
 
 {% block content %}
-    <h1>Please provide the following information:</h1>
-    <h3>Clips are coming from: {{ orig_vid }}</h3>
+    <h3>Clips name: {{ orig_vid }}</h3>
     <video id="my-video" class="video-js" controls preload="auto" width="640" height="264" data-setup="{}">
         <source src="{{ vid_url }}" type='video/mp4'>
         <p class="vjs-no-js">
