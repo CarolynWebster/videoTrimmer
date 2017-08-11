@@ -5,11 +5,28 @@ enctype="multipart/form-data"> -->
 {% extends 'base.html' %}
 {% block title %}Select a video to upload{% endblock %}
 {% block content %}
-<form action="/upload-video" enctype="multipart/form-data" method="POST">
-    <input type="text" name="name" placeholder="Jane Doe"><br/>
-    <input type="date" name="date-taken"><br/>
-    <input type="file" name='rawvid'><br/>
-    <input type="hidden" name='case_id' value={{ case_id }}>
-    <input type="submit">
+<form action="#" enctype="multipart/form-data" method="POST" id='vid-upload'>
+    <input type="text" name="name" id="name" placeholder="Jane Doe"><br/>
+    <input type="date" name="date-taken" id="date-taken"><br/>
+    <input type="file" name='rawvid' id='rawvid'><br/>
+    <input type="hidden" name='case_id' id='case_id' value={{ case_id }}>
+    <input type="submit" value='Upload'>
 </form>
+
+<script>
+    function upload_video() {
+        console.log("heyo!")
+        var formData = {
+            'name': $('#name').val(),
+            'date-taken': $('#date-taken').val(),
+            'rawvid': $('#rawvid').val(),
+            'case_id': $('#case_id').val()
+        };
+        $.post('/upload-video', formData).then(function (results) {
+            console.log(results);
+        })
+    }
+
+    $('#vid-upload').on('submit', upload_video);
+</script>
 {% endblock %}

@@ -164,20 +164,15 @@ def show_upload_form():
 def upload_video():
     """Uploads video to aws"""
 
+    print "\n\n\n\n\n\n\n", request.form, "\n\n\n\n\n\n\n"
     case_id = request.form.get('case_id')
     session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
     s3 = session.resource('s3')
     video_file = request.files.get("rawvid")
-    video_name = video_file.filename
+    video_name = video_file.name
 
-    #s3 = boto3.resource('s3')
-    #s3.Bucket(BUCKET_NAME).upload_file(video_file, video_name)
     s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file)
-    #s3.Object(BUCKET_NAME, video_name).upload_file(video_file)
 
-    #base_url = "https://s3-us-west-1.amazonaws.com/videotrim/"
-
-   # whole_url = base_url+video_name
     date_added = datetime.now()
 
     #TO DO - check if video url exists already
@@ -188,8 +183,9 @@ def upload_video():
     db.session.commit()
 
     redir_url = '/cases/{}'.format(case_id)
+    print "\n\n\n\n\n\n\n FILE UPLOAD STARTED \n\n\n\n\n\n\n"
 
-    return redirect(redir_url)
+    return "Your video has uploaded"
 
 @app.route('/show-video/<vid_id>')
 @login_required
@@ -304,7 +300,7 @@ def make_clips(file_loc, clips, vid_id, user_id):
         # create the new subclip
         new_clip = my_clip.subclip(t_start=clip[0], t_end=clip[1])
         # save the clip to our temp file location
-        new_clip.write_videofile(clip_name, codec="mpeg4")
+        new_clip.write_videofile(clip_name, codec="libx264")
         # add the clip to our db
         db_clip = SubClip(vid_id=vid_id, start_at=clip[0], end_at=clip[1], created_by=user_id, clip_name=key_name)
         db.session.add(db_clip)
@@ -367,6 +363,19 @@ def show_clip(clip_id):
     )
 
     return render_template('show-video.html', vid_id=clip_id, orig_vid=clip_name, vid_url=url)
+
+
+@app.route('/download-clips', methods=['POST'])
+@login_required
+def download_clips():
+    """Download a list of clips"""
+    print "\n\n\n\n\n\n", request.form, "\n\n\n\n\n"
+    clips = request.form.get('clips')
+    print clips
+    # for clip in clips:
+    #     print clip
+
+
 
 def remove_file(file_path):
     """removes file from temp folder once uploaded"""
