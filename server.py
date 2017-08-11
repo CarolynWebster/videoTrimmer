@@ -20,6 +20,8 @@ import boto3
 
 import os
 
+import zipfile
+
 app = Flask(__name__)
 
 AWS_ACCESS_KEY = os.environ['AWS_ACCESS_KEY']
@@ -369,13 +371,35 @@ def show_clip(clip_id):
 @login_required
 def download_clips():
     """Download a list of clips"""
-    print "\n\n\n\n\n\n", request.form, "\n\n\n\n\n"
-    clips = request.form.get('clips')
-    print clips
-    # for clip in clips:
-    #     print clip
+    selected_clips = request.form.get('clips')
+    vid_id = int(request.form.get('vid_id'))
+    vid_name = Video.query.get(vid_id).vid_name[:-4]
+    selected_clips = selected_clips.strip()
+    selected_clips = selected_clips.split(",")
+    # print "\n\n\n\n\n\n", selected_clips, "\n\n\n\n\n"
+    req_clips = db.session.query(SubClip.clip_name).join(Video).filter(
+                                 (SubClip.clip_id.in_(selected_clips)) &
+                                 (Video.vid_id == vid_id)).all();
+    # print "\n\n\n\n\n\n", req_clips, "\n\n\n\n\n"
+    download_all_clips(req_clips, vid_name)
+
+def download_all_clips(clips, vid_name):
+    print "\n\n\n\n\n", clips, "\n\n\n\n\n"
+    clip_urls = []
+    with zipfile.ZipFile(vid_name+'.zip', 'w') as clipzip:
+        for clip in clips:
+            file_name = clip[0]
+            save_loc = 'static/temp/'+file_name
+            clip_urls.append(save_loc)
+            s3 = boto3.resource('s3')
+            # s3.Object(BUCKET_NAME, file_name).download_file(save_loc)
+            s3.meta.client.download_file(BUCKET_NAME, file_name, save_loc)
+            clipzip.write(save_loc, vid_name+"/"+file_name)
 
 
+        #s3 = boto3.resource('s3')
+        #
+        #s3.meta.client.download_file(BUCKET_NAME, vid_name, save_loc, Callback=make_clips(save_loc, clips, vid_id, user_id))
 
 def remove_file(file_path):
     """removes file from temp folder once uploaded"""
