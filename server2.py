@@ -170,12 +170,13 @@ def upload_video():
     case_id = request.form.get('case_id')
     video_file = request.files.get("rawvid")
     video_name = video_file.filename
+    user_id = g.current_user.user_id
 
-    upload = threading.Thread(target=upload_aws_db, args=(video_file, video_name)).start()
+    upload = threading.Thread(target=upload_aws_db, args=(video_file, video_name, case_id, user_id)).start()
 
     return redirect('/cases/'+str(case_id))
 
-def upload_aws_db(video_file, video_name):
+def upload_aws_db(video_file, video_name, case_id, user_id):
     """Handles upload to aws and addition to the db"""
 
     video_file = video_file.read()
@@ -191,8 +192,7 @@ def upload_aws_db(video_file, video_name):
 
     #TO DO - check if video url exists already
 
-    new_vid = Video(case_id=case_id, vid_name=video_name, 
-                    added_by=g.current_user.user_id, added_at=date_added)
+    new_vid = Video(case_id=case_id, vid_name=video_name, added_by=user_id, added_at=date_added)
     db.session.add(new_vid)
     db.session.commit()
 

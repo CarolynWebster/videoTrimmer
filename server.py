@@ -22,6 +22,8 @@ import os
 
 import zipfile
 
+import threading
+
 app = Flask(__name__)
 
 AWS_ACCESS_KEY = os.environ['AWS_ACCESS_KEY']
@@ -89,7 +91,7 @@ def show_case_vids(case_id):
     """Show all full videos associated with this case"""
 
     # vids = Video.query.filter_by(case_id=case_id).all()
-    vids = db.session.query(Video.vid_name, Video.vid_id).filter(Video.case_id==case_id).all()
+    vids = db.session.query(Video.vid_name, Video.vid_id, Video.vid_status).filter(Video.case_id==case_id).all()
     this_case = Case.query.get(case_id)
 
     return render_template('case-vids.html', videos=vids, case=this_case)
@@ -161,33 +163,81 @@ def show_upload_form():
     return render_template('upload-video.html', case_id=case_id)
 
 
+# @app.route('/upload-video', methods=["POST"])
+# @login_required
+# def upload_video():
+#     """Uploads video to aws"""
+
+#     print "\n\n\n\n\n\n\n", request.form, "\n\n\n\n\n\n\n"
+#     case_id = request.form.get('case_id')
+#     session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
+#     s3 = session.resource('s3')
+#     video_file = request.files.get("rawvid")
+#     video_name = video_file.name
+
+#     s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file)
+
+#     date_added = datetime.now()
+
+#     #TO DO - check if video url exists already
+
+#     new_vid = Video(case_id=case_id, vid_name=video_name, 
+#                     added_by=g.current_user.user_id, added_at=date_added)
+#     db.session.add(new_vid)
+#     db.session.commit()
+
+#     redir_url = '/cases/{}'.format(case_id)
+#     print "\n\n\n\n\n\n\n FILE UPLOAD STARTED \n\n\n\n\n\n\n"
+
+#     return "Your video has uploaded"
+
 @app.route('/upload-video', methods=["POST"])
 @login_required
 def upload_video():
     """Uploads video to aws"""
 
-    print "\n\n\n\n\n\n\n", request.form, "\n\n\n\n\n\n\n"
+    print "\n\n\n\n\n\n\n STARTED \n\n\n\n\n\n\n"
     case_id = request.form.get('case_id')
-    session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
-    s3 = session.resource('s3')
     video_file = request.files.get("rawvid")
-    video_name = video_file.name
+    video_name = video_file.filename
+    user_id = g.current_user.user_id
 
-    s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file)
-
+    # add the video to the db
     date_added = datetime.now()
-
-    #TO DO - check if video url exists already
-
     new_vid = Video(case_id=case_id, vid_name=video_name, 
-                    added_by=g.current_user.user_id, added_at=date_added)
+                    added_by=user_id, added_at=date_added)
     db.session.add(new_vid)
     db.session.commit()
 
-    redir_url = '/cases/{}'.format(case_id)
-    print "\n\n\n\n\n\n\n FILE UPLOAD STARTED \n\n\n\n\n\n\n"
+    # send the upload to a separate thread to upload while the user moves on
+    upload = threading.Thread(target=upload_aws_db, args=(video_file, video_name, case_id, user_id)).start()
 
-    return "Your video has uploaded"
+    return redirect('/cases/'+str(case_id))
+
+def upload_aws_db(video_file, video_name, case_id, user_id):
+    """Handles upload to aws and addition to the db"""
+
+    # you have to read the file in for some reason
+    video_file = video_file.read()
+
+    #start a connection with aws
+    session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
+    s3 = session.resource('s3')
+    print "\n\n\n\n\n\n\n THREADING MOTHER FUCKER", BUCKET_NAME, video_name, "\n\n\n\n\n\n\n"
+    # Put the video on aws
+    s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file)
+    # once the upload is complete - update the db status
+    update_vid_status(video_name)
+
+def update_vid_status(vid_name):
+    """Updates the video status once upload is complete"""
+
+    print "\n\n\n\n\n\n\n  STATUS UPDATE \n\n\n\n\n\n\n"
+    with app.app_context():
+        vid = Video.query.filter(Video.vid_name == vid_name).first()
+        vid.vid_status = 'Ready'
+        db.session.commit()
+
 
 @app.route('/show-video/<vid_id>')
 @login_required
@@ -246,26 +296,18 @@ def get_clip_source():
     clip_list = request.form.get('clip-list')
     clips = clip_list.split(", ")
 
-    #establish connection with s3
-    s3C = boto3.client('s3')
-
-    # Generate the URL to get 'key-name' from 'bucket-name'
-    # this temporarily grants access to the requested video
-    url = s3C.generate_presigned_url(
-        ClientMethod='get_object',
-        Params={
-            'Bucket': BUCKET_NAME,
-            'Key': vid_name
-        }
-    )
-
-    s3 = boto3.resource('s3')
+    # make pathname for location to save temp video
     save_loc = 'static/temp/'+vid_name
-    if os.path.isfile(save_loc):
-        make_clips(save_loc, clips, vid_id, user_id)
-    else:
-        s3.meta.client.download_file(BUCKET_NAME, vid_name, save_loc, Callback=make_clips(save_loc, clips, vid_id, user_id))
-    
+    # if the video hasn't been downloaded already - download it
+    if os.path.isfile(save_loc) is False:
+        client = boto3.client('s3')
+        client.download_file(BUCKET_NAME, vid_name, save_loc)
+        while os.path.isfile(save_loc) is False:
+            pass
+            #wait for it to download
+    #once the file is available, make clips
+    make_clips(save_loc, clips, vid_id, user_id)
+
     return redirect('/clips/{}'.format(vid_id))
 
 

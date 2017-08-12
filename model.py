@@ -79,11 +79,12 @@ class Video(db.Model):
     # vid_url = db.Column(db.String(100), nullable=False)
     added_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     added_at = db.Column(db.DateTime, nullable=False)
+    vid_status = db.Column(db.String(10), default='Processing')
 
     def __repr__(self):
         """useful video info"""
 
-        return "<Video vid_id={} case_id={} name={}".format(self.vid_id,
+        return "<Video vid_id={} case_id={} name={}>".format(self.vid_id,
                                                            self.case_id,
                                                            self.vid_name)
 
@@ -100,6 +101,13 @@ class SubClip(db.Model):
     end_at = db.Column(db.String(20))
     # clip_url = db.Column(db.String(100), nullable=False)
     created_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    clip_status = db.Column(db.String(10), default='Processing')
+
+    def __repr__(self):
+        """useful clip info"""
+
+        return "<SubClip clip_id={} clip_name={}>".format(self.clip_id,
+                                                         self.clip_name)
 
 
 ##############################################################################

@@ -7,12 +7,14 @@
 <table>
     <tr>
     <th>Video name</th>
+    <th>Status</th>
     </tr>
     {% for video in videos %}
     <tr>
         <!--case name-->
-        <!--video comes in tuples (vid_name, vid_id)-->
-        <td><a href = '/show-video/{{ video[1] }}' target='_blank'>{{ video[0] }}</td></a>
+        <!--video comes in tuples (video[0] = vid_name, video[1] = vid_id, video[2] = vid_status)-->
+        <td><a href = '/show-video/{{ video[1] }}' target='_blank'>{{ video[0] }}</a></td>
+        <td>{{ video[2] }}</td>
         <td><a href = '/trim-video/{{ video[1] }}'>Trim new clips</a></td>
         <td><a href = '/clips/{{ video[1] }}'>See existing clips</a></td>
     </tr>
