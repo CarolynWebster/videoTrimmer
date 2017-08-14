@@ -3,9 +3,12 @@
 
 {% block content %}
 <h1>Case name: {{ case.case_name }}</h1>
+<p><a href='/case-settings/{{ case.case_id}}'>Case settings</a></p>
 <a href="/upload-video?case_id={{ case.case_id }}"><button>Upload a new video</button></a>
 <table>
     <tr>
+    <th>Deponent</th>
+    <th>Date recorded</th>
     <th>Video name</th>
     <th>Status</th>
     </tr>
@@ -13,10 +16,12 @@
     <tr>
         <!--case name-->
         <!--video comes in tuples (video[0] = vid_name, video[1] = vid_id, video[2] = vid_status)-->
-        <td><a href = '/show-video/{{ video[1] }}' target='_blank'>{{ video[0] }}</a></td>
-        <td>{{ video[2] }}</td>
-        <td><a href = '/trim-video/{{ video[1] }}'>Trim new clips</a></td>
-        <td><a href = '/clips/{{ video[1] }}'>See existing clips</a></td>
+        <td>{{ video.deponent }}</td>
+        <td>{{ video.recorded_at }}</td>
+        <td><a href = '/show-video/{{ video.vid_id }}' target='_blank'>{{ video.vid_name }}</a></td>
+        <td>{{ video.vid_status }}</td>
+        <td><a href = '/trim-video/{{ video.vid_id }}'>Trim new clips</a></td>
+        <td><a href = '/clips/{{ video.vid_id }}'>See existing clips</a></td>
     </tr>
     {% endfor %}
 </table>

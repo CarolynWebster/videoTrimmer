@@ -9,6 +9,7 @@
     <th>Clip name</th>
     <th>Start</th>
     <th>End</th>
+    <th>Status</th>
     <th>Created by<th>
     </tr>
     {% for clip in clips %}
@@ -17,15 +18,17 @@
         <td><a href = '/show-clip/{{ clip.clip_id }}' target='_blank'>{{ clip.clip_name }}</td></a>
         <td>{{ clip.start_at }}</td>
         <td>{{ clip.end_at }}</td>
-        <td>Name here</td>
+        <td>{{ clip.clip_status }}</td>
+        <td>{{ clip.user.fname }} {{ clip.user.lname }}</td>
     </tr>
     {% endfor %}
 </table>
-<button type="button" id='dlClips' value="Download">Download Clips</button>
+<button type="button" id='downloadClips' value="Download">Download Clips</button>
+<button type="button" id='deleteClips' value="Delete">Delete Clips</button>
     
 <script>
-function send_download_request(){
-    //evt.preventDefault();
+function collect_checked_vids(evt){
+
     //get an array of all the checked clips
     var checked_vids = $('.vidcheck:checkbox:checked')
     var vidsToDL = [];
@@ -37,13 +40,36 @@ function send_download_request(){
     console.log(vids)
     var formInputs = {
         'clips': vids,
-        'vid_id': {{ main_vid.vid_id }}
+        'vid_id': {{ main_vid.vid_id }},
+        'call_func': evt.currentTarget.id
     }
-    $.post('/download-clips', formInputs, function() {
-        console.log('message sent!')
-    });
+
+    if (evt.currentTarget.id == 'downloadClips') {
+        console.log("download")
+        //send direction to server
+        //download function called from the handle-clips route
+        $.post('/handle-clips', formInputs, function() {
+        console.log('request complete')
+        location.reload();
+        });
+    }
+    else if (evt.currentTarget.id == 'deleteClips') {
+        console.log("delete")
+        var confirm_delete = confirm('Are you sure you want to delete '+checked_vids.length+' clips?')
+        //send direction to server
+        //delete function called from the handle-clips route
+        $.post('/handle-clips', formInputs, function() {
+        console.log('request complete')
+        location.reload();
+        });
+    }
 }
 
-$('#dlClips').on('click', send_download_request)
+$('#downloadClips').on('click', collect_checked_vids)
+$('#deleteClips').on('click', collect_checked_vids)
+
+function send_delete_request(){
+
+}
 </script>
 {% endblock %}

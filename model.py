@@ -80,6 +80,8 @@ class Video(db.Model):
     added_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     added_at = db.Column(db.DateTime, nullable=False)
     vid_status = db.Column(db.String(10), default='Processing')
+    recorded_at = db.Column(db.DateTime)
+    deponent = db.Column(db.String(50))
 
     def __repr__(self):
         """useful video info"""
@@ -102,6 +104,9 @@ class SubClip(db.Model):
     # clip_url = db.Column(db.String(100), nullable=False)
     created_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     clip_status = db.Column(db.String(10), default='Processing')
+
+    user = db.relationship("User", backref="subclips")
+    video = db.relationship("Video", backref="subclips")
 
     def __repr__(self):
         """useful clip info"""

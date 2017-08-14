@@ -6,3 +6,5 @@ quinny*
 vidtrimmer.sql
 secrets*
 static/temp/
+previous/
+*.zip

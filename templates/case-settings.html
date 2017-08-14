@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Case Settings{% endblock %}
+
+{% block content %}
+<table>
+    <tr>
+    <th>User</th>
+    <th>Email</th>
+    </tr>
+    {% for user in users %}
+    <tr>
+        <!--case name-->
+        <td>{{ user.fname }} {{ user.lname }}</td>
+        <td>{{ user.email }}</td>
+    </tr>
+    {% endfor %}
+</table>
+<textarea id="new_users_input" placeholder="JaneD@email.com, JohnD@email.com"></textarea>
+<button id='add_users'>Add new users</button>
+    
+<script>
+    function updateUsers (){
+        var new_users = $('#new_users_input').val()
+        var formInputs = {
+            'new_users': new_users,
+            'case_id': {{ case_id }},
+        }
+        $.post('/add-users', formInputs, function () {
+            //refresh the page after adding users
+            location.reload();
+        });
+    }
+    $('#add_users').on('click', updateUsers)
+</script>
+{% endblock %}
