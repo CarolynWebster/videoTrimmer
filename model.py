@@ -22,8 +22,8 @@ class User(db.Model):
     user_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     email = db.Column(db.String(64), nullable=False)
     password = db.Column(db.String(64))
-    fname = db.Column(db.String(50))
-    lname = db.Column(db.String(50))
+    fname = db.Column(db.String(50), default='')
+    lname = db.Column(db.String(50), default='Not registered')
 
     def __repr__(self):
         """Provide userful user information"""
@@ -112,8 +112,59 @@ class SubClip(db.Model):
         """useful clip info"""
 
         return "<SubClip clip_id={} clip_name={}>".format(self.clip_id,
-                                                         self.clip_name)
+                                                          self.clip_name)
 
+
+class Tag(db.Model):
+    """A tag for clips"""
+
+    __tablename__ = "tags"
+
+    tag_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    tag_name = db.Column(db.String(30), nullable=False)
+
+    def __repr__(self):
+        """useful tag info"""
+
+        return "<Tag tag_id={} tag_name={}>".format(self.tag_id, self.tag_name)
+
+class CaseTag(db.Model):
+    """Holds associated case tags"""
+
+    __tablename__ = "casetags"
+
+    casetag_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    tag_id = db.Column(db.Integer, db.ForeignKey('tags.tag_id'))
+    case_id = db.Column(db.Integer, db.ForeignKey('cases.case_id'))
+
+    case = db.relationship('Case', backref="casetags")
+    tag = db.relationship('Tag', backref="casetags")
+
+    def __repr__(self):
+        """useful tag info"""
+
+        return "<Tag tag_id={} tag_name={} case_id ={}>".format(self.tag_id,
+                                                                self.tag_name,
+                                                                self.case_id)
+
+class ClipTag(db.Model):
+    """Tags associated with specific subclips"""
+
+    __tablename__ = "cliptags"
+
+    cliptag_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    tag_id = db.Column(db.Integer, db.ForeignKey('tags.tag_id'))
+    clip_id = db.Column(db.Integer, db.ForeignKey('clips.clip_id'))
+
+    clip = db.relationship('SubClip', backref="clips")
+    tag = db.relationship('Tag', backref="clips")
+
+    def __repr__(self):
+        """useful cliptag info"""
+
+        return "<ClipTag cliptag_id={} tag_name={} case_id ={}>".format(self.clip_id,
+                                                                self.tag.tag_name,
+                                                                self.case_id)
 
 ##############################################################################
 # Helper functions
