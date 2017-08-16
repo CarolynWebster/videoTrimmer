@@ -4,11 +4,18 @@ from flask_sqlalchemy import SQLAlchemy
 
 from datetime import datetime
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+
 # This is the connection to the PostgreSQL database; we're getting this through
 # the Flask-SQLAlchemy helper library. On this, we can find the `session`
 # object, where we do most of our interactions (like committing, etc.)
 
 db = SQLAlchemy()
+
+engine = create_engine('postgresql:///vidtrimmer')
+
+db_session = scoped_session(sessionmaker(bind=engine))
 
 
 ##############################################################################

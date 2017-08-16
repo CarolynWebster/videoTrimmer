@@ -12,7 +12,7 @@ from functools import wraps
 
 from flask_debugtoolbar import DebugToolbarExtension
 
-from model import db, connect_to_db, User, Video, Case, UserCase, Clip, Tag, ClipTag
+from model import db, connect_to_db, User, Video, Case, UserCase, Clip, Tag, ClipTag, db_session
 
 from datetime import datetime
 
@@ -26,8 +26,8 @@ import threading
 
 import smtplib
 
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+# from email.mime.multipart import MIMEMultipart
+# from email.mime.text import MIMEText
 
 app = Flask(__name__)
 
@@ -214,15 +214,15 @@ def show_case_settings(case_id):
 def get_tags(case_id):
     """Returns the tags associated with a case and the default tags"""
 
-    with app.app_context():
-        # get the DEFAULT case from the db
-        default_case = Case.query.filter_by(case_name="DEFAULT").first()
+    # db_session is a scoped session
+    # query the db for the DEFAULT case
+    default_case = db_session.query(Case).filter(Case.case_name == "DEFAULT").first()
+    # find all the tags for this provided case as well as default tags
+    tags = db_session.query(Tag).filter((Tag.case_id == case_id) | 
+                                        (Tag.case_id == default_case.case_id)).all()
 
-        # get the tags for the requested case and the default tags
-        tags = Tag.query.filter((Tag.case_id == case_id) | (Tag.case_id == default_case.case_id)).all()
-
-        # return list of tag objects
-        return tags
+    # return a list of tags
+    return tags
 
 @app.route('/add-users', methods=["POST"])
 def add_users_to_case():
@@ -597,9 +597,9 @@ def show_all_clips(vid_id):
     main_vid = Video.query.get(vid_id)
 
     # get the tags for this case and the default tags
-    # tags = get_tags(main_vid.case_id)
-    default_case = Case.query.filter_by(case_name = "DEFAULT").first()
-    tags = Tag.query.filter((Tag.case_id == default_case.case_id) | (Tag.case_id == main_vid.case.case_id)).all()
+    tags = get_tags(main_vid.case_id)
+    # default_case = Case.query.filter_by(case_name = "DEFAULT").first()
+    # tags = Tag.query.filter((Tag.case_id == default_case.case_id) | (Tag.case_id == main_vid.case.case_id)).all()
     return render_template('vid-clips.html', main_vid=main_vid, clips=clips, tags=tags)
 
 @app.route('/show-clip/<clip_id>')
