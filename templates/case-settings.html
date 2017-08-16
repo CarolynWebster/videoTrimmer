@@ -17,6 +17,15 @@
 </table>
 <textarea id="new_users_input" placeholder="JaneD@email.com, JohnD@email.com"></textarea>
 <button id='add_users'>Add new users</button>
+
+<h1>Tags</h1>
+    <ul>
+        {% for tag in tags %}
+            <li>{{ tag.tag_name }}</li>
+        {% endfor %}
+    </ul>
+<textarea id="new_tags_input" placeholder="Mock Trial, Appeal, Arbitration"></textarea>
+<button id='add_tags'>Add new tags</button>
     
 <script>
     function updateUsers (){
@@ -31,5 +40,20 @@
         });
     }
     $('#add_users').on('click', updateUsers)
+</script>
+
+<script>
+    function updateTags (){
+        var new_tags = $('#new_tags_input').val()
+        var formInputs = {
+            'new_tags': new_tags,
+            'case_id': {{ case_id }},
+        }
+        $.post('/add-tags', formInputs, function () {
+            //refresh the page after adding users
+            location.reload();
+        });
+    }
+    $('#add_tags').on('click', updateTags)
 </script>
 {% endblock %}

@@ -3,6 +3,8 @@
 
 {% block content %}
 <h1>Video source: {{ main_vid.vid_name }}</h1>
+<a href="/show-video/{{ main_vid.vid_id }}" target='_blank'><button>Show video</button></a>
+<a href="/trim-video/{{ main_vid.vid_id }}"><button>Trim new clips</button></a>
 <table>
     <tr>
     <th><input type='checkbox' id="select-all"></th>
@@ -11,6 +13,7 @@
     <th>End</th>
     <th>Status</th>
     <th>Created by<th>
+    <th>Tags</th>
     </tr>
     {% for clip in clips %}
     <tr>
@@ -20,6 +23,19 @@
         <td>{{ clip.end_at }}</td>
         <td>{{ clip.clip_status }}</td>
         <td>{{ clip.user.fname }} {{ clip.user.lname }}</td>
+        <td id='tagtd_{{ clip.clip_id }}'>
+            {% for ct in clip.clip_tags %}
+                {{ ct.tag.tag_name }}
+            {% endfor %}
+        </td>
+        <td><select id='sel_{{ clip.clip_id }}'>
+                <option value="None">Select tag</option>
+                {% for tag in tags %}
+                  <option value="{{ tag.tag_name }}">{{ tag.tag_name }}</option>
+                {% endfor %}
+            </select>
+        </td>
+        <td><button class='casetag' id='{{ clip.clip_id }}'>Add</button></td>
     </tr>
     {% endfor %}
 </table>
@@ -44,6 +60,9 @@ function collect_checked_vids(evt){
         'call_func': evt.currentTarget.id
     }
 
+    var all_cboxes = $('.vidcheck:checkbox')
+    all.c_boxes.prop('checked', false);
+
     if (evt.currentTarget.id == 'downloadClips') {
         console.log("download")
         //send direction to server
@@ -55,21 +74,55 @@ function collect_checked_vids(evt){
     }
     else if (evt.currentTarget.id == 'deleteClips') {
         console.log("delete")
-        var confirm_delete = confirm('Are you sure you want to delete '+checked_vids.length+' clips?')
+        var confirm_delete = confirm('Are you sure you want to delete '+checked_vids.length+' clips?\nThis action cannot be undone.');
         //send direction to server
         //delete function called from the handle-clips route
-        $.post('/handle-clips', formInputs, function() {
-        console.log('request complete')
-        location.reload();
-        });
+        if (confirm_delete == true)
+            $.post('/handle-clips', formInputs, function() {
+                console.log('request complete')
+                location.reload();
+            });
     }
+}
+
+function toggleChecks(evt) {
+    var status = evt.currentTarget.checked
+    console.log(status)
+    var all_cboxes = $('.vidcheck:checkbox')
+    if (status == true) {
+        console.log("if")
+        all_cboxes.prop('checked', true);
+    }
+    else {
+        console.log("else")
+        all_cboxes.prop('checked', false);
+    }
+
 }
 
 $('#downloadClips').on('click', collect_checked_vids)
 $('#deleteClips').on('click', collect_checked_vids)
+$('#select-all').on('change', toggleChecks)
 
-function send_delete_request(){
 
-}
+</script>
+
+<script>
+    function addTags(evt){
+        var clipIdTarget = evt.currentTarget.id;
+        var selTarget = '#sel_' + clipIdTarget;
+        var tdTarget = '#tagtd_' + clipIdTarget;
+        var selectedTag = 
+        tagInputs = {
+            'clip_id': clipIdTarget,
+            'tag': $(selTarget).val()
+        };
+        $.post('/add-cliptags', tagInputs, function (results) {
+            console.log(results)
+            $(tdTarget).append(results)
+        })
+
+    }
+    $(".casetag").on('click', addTags)
 </script>
 {% endblock %}

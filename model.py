@@ -83,6 +83,8 @@ class Video(db.Model):
     recorded_at = db.Column(db.DateTime)
     deponent = db.Column(db.String(50))
 
+    case = db.relationship("Case", backref="videos")
+
     def __repr__(self):
         """useful video info"""
 
@@ -91,7 +93,7 @@ class Video(db.Model):
                                                            self.vid_name)
 
 
-class SubClip(db.Model):
+class Clip(db.Model):
     """A clip created from a full video"""
 
     __tablename__ = "clips"
@@ -111,7 +113,7 @@ class SubClip(db.Model):
     def __repr__(self):
         """useful clip info"""
 
-        return "<SubClip clip_id={} clip_name={}>".format(self.clip_id,
+        return "<Clip clip_id={} clip_name={}>".format(self.clip_id,
                                                           self.clip_name)
 
 
@@ -122,30 +124,16 @@ class Tag(db.Model):
 
     tag_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     tag_name = db.Column(db.String(30), nullable=False)
+    case_id = db.Column(db.Integer, db.ForeignKey('cases.case_id'))
+
+    case = db.relationship('Case', backref="tags")
+    clips = db.relationship('Clip', secondary="cliptags", backref="tags")
 
     def __repr__(self):
         """useful tag info"""
 
         return "<Tag tag_id={} tag_name={}>".format(self.tag_id, self.tag_name)
 
-class CaseTag(db.Model):
-    """Holds associated case tags"""
-
-    __tablename__ = "casetags"
-
-    casetag_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
-    tag_id = db.Column(db.Integer, db.ForeignKey('tags.tag_id'))
-    case_id = db.Column(db.Integer, db.ForeignKey('cases.case_id'))
-
-    case = db.relationship('Case', backref="casetags")
-    tag = db.relationship('Tag', backref="casetags")
-
-    def __repr__(self):
-        """useful tag info"""
-
-        return "<Tag tag_id={} tag_name={} case_id ={}>".format(self.tag_id,
-                                                                self.tag_name,
-                                                                self.case_id)
 
 class ClipTag(db.Model):
     """Tags associated with specific subclips"""
@@ -156,15 +144,14 @@ class ClipTag(db.Model):
     tag_id = db.Column(db.Integer, db.ForeignKey('tags.tag_id'))
     clip_id = db.Column(db.Integer, db.ForeignKey('clips.clip_id'))
 
-    clip = db.relationship('SubClip', backref="clips")
-    tag = db.relationship('Tag', backref="clips")
+    clip = db.relationship('Clip', backref="clip_tags")
+    tag = db.relationship('Tag', backref="clip_tags")
 
     def __repr__(self):
         """useful cliptag info"""
 
-        return "<ClipTag cliptag_id={} tag_name={} case_id ={}>".format(self.clip_id,
-                                                                self.tag.tag_name,
-                                                                self.case_id)
+        return "<ClipTag cliptag_id={} clip_id ={}>".format(self.cliptag_id,
+                                                                self.clip_id)
 
 ##############################################################################
 # Helper functions

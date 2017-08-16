@@ -12,7 +12,7 @@ from functools import wraps
 
 from flask_debugtoolbar import DebugToolbarExtension
 
-from model import db, connect_to_db, User, Video, Case, UserCase, SubClip
+from model import db, connect_to_db, User, Video, Case, UserCase, Clip, Tag, ClipTag
 
 from datetime import datetime
 
@@ -161,9 +161,13 @@ def show_case_settings(case_id):
 
     user_check = check_user_permissions(g.current_user.user_id, case_id)
     if user_check:
+        # get all users associated with this case id
         users = db.session.query(User.fname, User.lname, User.email).join(
                                  UserCase).filter(UserCase.case_id == case_id).all()
-        return render_template('case-settings.html', users=users, case_id=case_id)
+        # get case ID of the default case
+        default_case = Case.query.filter_by(case_name = "DEFAULT").first()
+        tags = Tag.query.filter((Tag.case_id == case_id) | (Tag.case_id == default_case.case_id)).all()
+        return render_template('case-settings.html', users=users, case_id=case_id, tags=tags)
     else:
         flash("You don't have permission to view that case")
         return redirect('/cases')
@@ -198,12 +202,71 @@ def add_users_to_case():
             db.session.commit()
             user_check = User.query.filter_by(email=email).first()
 
-        #create an association in the usercases table
-        user_case = UserCase(case_id=case_id, user_id=user_check.user_id)
-        db.session.add(user_case)
-        db.session.commit()
+        case_user_check = UserCase.query.filter(UserCase.case_id == case_id, 
+                                                UserCase.user_id == user_check.user_id).first()
+
+        if case_user_check:
+            #create an association in the usercases table
+            user_case = UserCase(case_id=case_id, user_id=user_check.user_id)
+            db.session.add(user_case)
+            db.session.commit()
 
     return "Users were added successfully"
+
+
+@app.route('/add-tags', methods=["POST"])
+def add_tags_to_case():
+    """Adds a tag to a specific case"""
+
+    case_id = request.form.get('case_id')
+    tags = request.form.get('new_tags')
+
+    #nix any spaces
+    tags = tags.replace(" ", "")
+
+    #split up the emails
+    tags = tags.split(",")
+
+    for tag in tags:
+        #check if a user with that email exists already
+        #gets the user object for that email address
+        tag_check = Tag.query.filter(Tag.tag_name == tag, Tag.case_id == case_id).first()
+        print 
+        # if user already exists associate the user with the new case
+        if tag_check is None:
+            #if the user is not registered - add them to the database
+            #they can add their password and name when they officially register
+            tag = Tag(tag_name=tag, case_id=case_id)
+            #prime user to be added to db
+            db.session.add(tag)
+            #commit user to db
+            db.session.commit()
+
+    return "Tags were added successfully"
+
+
+@app.route('/add-cliptags', methods=["POST"])
+def add_cliptags():
+    """Adds a tag to a specific clip"""
+
+    #get clip id and tag from request
+    clip_id = request.form.get('clip_id')
+    req_tag = request.form.get('tag')
+
+    #get the tag obj that matches the requested tag
+    tag = Tag.query.filter(Tag.tag_name == req_tag).first()
+    print "\n\n\n\n\n\n", tag.tag_name, "\n\n\n\n\n\n"
+    clip = Clip.query.get(clip_id)
+
+    #check if that tag is associated with that clip already
+    #tag_check = ClipTag.query.filter(ClipTag.tag_id == tag.tag_id, ClipTag.clip_id == clip_id).first()
+    if tag not in clip.tags:
+        clip.tags.append(tag)
+        db.session.commit()
+
+        #return the tag to be added to the html
+        return tag.tag_name
+
 
 def check_user_permissions(user_id, case_id):
     """Checks if the users has access to the selected case"""
@@ -280,8 +343,6 @@ def update_vid_status(vid_name):
         #update the status to be ready
         vid.vid_status = 'Ready'
         db.session.commit()
-
-        flash(vid_name,'is ready!')
 
 
 @app.route('/show-video/<vid_id>')
@@ -371,16 +432,22 @@ def get_clip_source():
         key_name = clip_name[clip_name.rfind('/')+1:]
 
         #check if the clip exists already
-        clip_check = SubClip.query.filter_by(clip_name=key_name).first()
+        clip_check = Clip.query.filter_by(clip_name=key_name).first()
         if clip_check is None:
             # add the clip to our db
-            db_clip = SubClip(vid_id=vid_id, start_at=clip[0], end_at=clip[1], created_by=user_id, clip_name=key_name)
+            db_clip = Clip(vid_id=vid_id, start_at=clip[0], end_at=clip[1], created_by=user_id, clip_name=key_name)
             db.session.add(db_clip)
             db.session.commit()
+        elif clip_check.clip_status != 'Ready':
+            # there might have been a processing error - so let the clips be remade
+            pass
         else:
-            # if we already have the clip note it so we can remove it 
+            # if we already have the clip note it so we can remove it
             # before sending clips to be made
             repeat_clips.append(i)
+
+    # sort so the highest indexes are first to avoid index error
+    repeat_clips.sort(reverse=True)
 
     for repeat in repeat_clips:
         clips.pop(repeat)
@@ -463,10 +530,9 @@ def file_done(vid_name):
 
     print "\n\n\n\n\n\n\n  STATUS UPDATE \n\n\n\n\n\n\n"
     with app.app_context():
-        clip = SubClip.query.filter(SubClip.clip_name == vid_name).first()
+        clip = Clip.query.filter(Clip.clip_name == vid_name).first()
         clip.clip_status = 'Ready'
         db.session.commit()
-        flash(vid_name,'is ready!')
 
 
 @app.route('/clips/<vid_id>')
@@ -476,17 +542,18 @@ def show_all_clips(vid_id):
 
     #get a list of all the clips associated with that video id
     # TO DO join query to get user name who created clip
-    clips = SubClip.query.filter(SubClip.vid_id == vid_id).all()
+    clips = Clip.query.filter(Clip.vid_id == vid_id).all()
     main_vid = Video.query.get(vid_id)
-
-    return render_template('vid-clips.html', main_vid=main_vid, clips=clips)
+    default_case = Case.query.filter_by(case_name = "DEFAULT").first()
+    tags = Tag.query.filter((Tag.case_id == default_case.case_id) | (Tag.case_id == main_vid.case.case_id)).all()
+    return render_template('vid-clips.html', main_vid=main_vid, clips=clips, tags=tags)
 
 @app.route('/show-clip/<clip_id>')
 @login_required
 def show_clip(clip_id):
     """Plays the clip in a separate window"""
 
-    clip_to_show = SubClip.query.get(clip_id)
+    clip_to_show = Clip.query.get(clip_id)
     clip_name = clip_to_show.clip_name
 
     #establish connection with s3
@@ -520,8 +587,8 @@ def handle_clips():
     # get a list of the clip objects from the db [(clip_name, clip_id)]
     selected_clips = selected_clips.strip()
     selected_clips = selected_clips.split(",")
-    req_clips = db.session.query(SubClip.clip_name, SubClip.clip_id).join(Video).filter(
-                                (SubClip.clip_id.in_(selected_clips)) &
+    req_clips = db.session.query(Clip.clip_name, Clip.clip_id).join(Video).filter(
+                                (Clip.clip_id.in_(selected_clips)) &
                                 (Video.vid_id == vid_id)).all();
 
     func_to_perform = request.form.get('call_func')
@@ -562,7 +629,7 @@ def delete_selected_clips(clips):
     with app.app_context():
         for clip in clips:
             #use the clip_id part of the tuple to get the clip obj to delete
-            clip_to_del = SubClip.query.get(clip[1])
+            clip_to_del = Clip.query.get(clip[1])
             db.session.delete(clip_to_del)
             db.session.commit()
             delete_aws.append({'Key': clip[0]})
