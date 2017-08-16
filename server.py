@@ -102,37 +102,66 @@ def show_case_vids(case_id):
 
     return render_template('case-vids.html', videos=vids, case=this_case)
 
-@app.route('/register-case', methods=["GET"])
-@login_required
-def show_case_reg_form():
-    """Show user a form to register a new case"""
-
-    return render_template('/register-case.html')
-
-
-@app.route('/register-case', methods=["POST"])
+@app.route('/register-case', methods=["GET", "POST"])
 @login_required
 def register_case():
-    """Adds a new case to the database"""
+    """Handles form and registration of new case"""
 
-    case_name = request.form.get('case_name')
-    other_users = request.form.get('user-list')
-    current_user = g.current_user.email
+    #if it's a get - render registration form
+    if request.method == "GET":
+        # render registration form
+        return render_template('/register-case.html')
 
-    #instantiate a new case in the db
-    new_case = Case(case_name=case_name, owner_id=g.current_user.user_id)
-    #prime and commit the case to the db
-    db.session.add(new_case)
-    db.session.commit()
+    #otherwise register case in db
+    if request.method == "POST":
 
-    # now add the userCase associations
-    user_emails = other_users.split(", ")
-    user_emails.append(current_user)
+        # get the case name, list of user emails and the current user
+        case_name = request.form.get('case_name')
+        other_users = request.form.get('user-list')
+        current_user = g.current_user
 
-    #get the newly created case obj so we can use it to associate people with it
-    this_case = Case.query.filter_by(case_name=case_name).first()
+        # strip out spaces from the email's input into the form
+        other_users = other_users.replace(" ", "")
+        # split on the comma
+        user_emails = other_users.split(",")
+        # append the existing user to the list of approved users
+        user_emails.append(current_user.email)
 
-    for email in user_emails:
+        # instantiate a new case in the db
+        # create_case() returns the newly created case object
+        case = create_case(case_name, current_user.user_id)
+
+        # cycle through the provided emails
+        for email in user_emails:
+
+            # check_user gets the user object for that email address
+            # or registers a new user if the email doesn't exist
+            user = check_user(email)
+
+            #create an association in the usercases table
+            add_usercase(case_id=case.case_id, user_id=user.user_id)
+
+        return redirect('/cases')
+
+
+def create_case(case_name, owner_id):
+    """Creates a new case in the database"""
+
+    with app.app_context():
+        #instantiate a new case in the db
+        new_case = Case(case_name=case_name, owner_id=owner_id)
+        #prime and commit the case to the db
+        db.session.add(new_case)
+        db.session.commit()
+        #get the newly assigned case_id
+        case_id = new_case.case_id
+        #return the case object
+        return Case.query.get(case_id)
+
+def check_user(email):
+    """Checks for user in database and adds if new"""
+
+    with app.app_context():
         #check if a user with that email exists already
         #gets the user object for that email address
         user_check = User.query.filter_by(email=email).first()
@@ -146,14 +175,21 @@ def register_case():
             db.session.add(user)
             #commit user to db
             db.session.commit()
-            user_check = User.query.filter_by(email=email).first()
+            user_check = User.query.get(user.user_id)
 
+        return user_check
+
+
+def add_usercase(case_id, user_id):
+    """Checks for user in database and adds if new"""
+
+    with app.app_context():
         #create an association in the usercases table
-        user_case = UserCase(case_id=this_case.case_id, user_id=user_check.user_id)
+        user_case = UserCase(case_id=case_id, user_id=user_id)
         db.session.add(user_case)
         db.session.commit()
 
-    return redirect('/cases')
+    return user_case
 
 
 @app.route('/case-settings/<case_id>')
@@ -165,14 +201,28 @@ def show_case_settings(case_id):
         # get all users associated with this case id
         users = db.session.query(User.fname, User.lname, User.email).join(
                                  UserCase).filter(UserCase.case_id == case_id).all()
-        # get case ID of the default case
-        default_case = Case.query.filter_by(case_name = "DEFAULT").first()
-        tags = Tag.query.filter((Tag.case_id == case_id) | (Tag.case_id == default_case.case_id)).all()
+
+        # get the tags for this case and the default tags
+        tags = get_tags(case_id)
+
         return render_template('case-settings.html', users=users, case_id=case_id, tags=tags)
     else:
         flash("You don't have permission to view that case")
         return redirect('/cases')
 
+
+def get_tags(case_id):
+    """Returns the tags associated with a case and the default tags"""
+
+    with app.app_context():
+        # get the DEFAULT case from the db
+        default_case = Case.query.filter_by(case_name="DEFAULT").first()
+
+        # get the tags for the requested case and the default tags
+        tags = Tag.query.filter((Tag.case_id == case_id) | (Tag.case_id == default_case.case_id)).all()
+
+        # return list of tag objects
+        return tags
 
 @app.route('/add-users', methods=["POST"])
 def add_users_to_case():
@@ -545,6 +595,9 @@ def show_all_clips(vid_id):
     # TO DO join query to get user name who created clip
     clips = Clip.query.filter(Clip.vid_id == vid_id).all()
     main_vid = Video.query.get(vid_id)
+
+    # get the tags for this case and the default tags
+    # tags = get_tags(main_vid.case_id)
     default_case = Case.query.filter_by(case_name = "DEFAULT").first()
     tags = Tag.query.filter((Tag.case_id == default_case.case_id) | (Tag.case_id == main_vid.case.case_id)).all()
     return render_template('vid-clips.html', main_vid=main_vid, clips=clips, tags=tags)

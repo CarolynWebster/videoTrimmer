@@ -23,16 +23,17 @@
   {% if g.current_user %}
     Logged in as: {{ g.current_user.fname }} {{ g.current_user.lname }} 
     <button id='login-btn'>Log Out</button>
+
+     <select name='case' id='case-selector'>
+    {% for case in g.user_cases %}
+      <option value={{ case.case_id }}>{{ case.case_name }}</option>
+    {% endfor %}
+    </select>
   {% else %}
     <br/>
     <button id='login-btn'>Log In</button>
   {% endif %}
   <!-- <a href='/cases'>Cases</a> -->
-  <select name='case' id='case-selector'>
-    {% for case in g.user_cases %}
-      <option value={{ case.case_id }}>{{ case.case_name }}</option>
-    {% endfor %}
-  </select>
   <hr>
 
     {% block content %} put your content here {% endblock %}
