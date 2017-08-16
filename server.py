@@ -64,6 +64,7 @@ def pre_process_all_requests():
     # if there is an id in the session - get the user object
     if user_id:
         g.current_user = User.query.get(user_id)
+        g.user_cases = g.current_user.cases
     # otherwise return None
     else:
         g.current_user = None

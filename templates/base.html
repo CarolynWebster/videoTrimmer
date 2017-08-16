@@ -27,7 +27,12 @@
     <br/>
     <button id='login-btn'>Log In</button>
   {% endif %}
-  <a href='/cases'>Cases</a>
+  <!-- <a href='/cases'>Cases</a> -->
+  <select name='case' id='case-selector'>
+    {% for case in g.user_cases %}
+      <option value={{ case.case_id }}>{{ case.case_name }}</option>
+    {% endfor %}
+  </select>
   <hr>
 
     {% block content %} put your content here {% endblock %}
@@ -38,11 +43,21 @@
       inOutBtn.on('click', function () {
           console.log(inOutBtn.html())
           if (inOutBtn.html().indexOf("In") !== -1) {
-              window.location.href = '/login';
+              window.location.href = '/';
           }
           else{
               window.location.href = '/logout';
           }
       });
+    </script>
+
+    <script>
+      function changeCase(evt) {
+        var new_case = $('#case-selector').val();
+        var new_url = '/cases/' + new_case;
+        window.location.href = new_url;
+      }
+
+      $('#case-selector').on('change', changeCase);
     </script>
 </body>

@@ -43,6 +43,8 @@ class Case(db.Model):
     owner_id = db.Column(db.Integer, nullable=True)
     case_name = db.Column(db.String(100), nullable=False)
 
+    users = db.relationship('User', secondary="usercases", backref="cases")
+
     def __repr__(self):
         """Provide userful user information"""
 
