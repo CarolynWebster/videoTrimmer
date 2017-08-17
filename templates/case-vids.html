@@ -7,15 +7,17 @@
 <a href="/upload-video?case_id={{ case.case_id }}"><button>Upload a new video</button></a>
 <table>
     <tr>
-    <th>Deponent</th>
-    <th>Date recorded</th>
-    <th>Video name</th>
-    <th>Status</th>
+        <th><input type='checkbox' id="select-all"></th>
+        <th>Deponent</th>
+        <th>Date recorded</th>
+        <th>Video name</th>
+        <th>Status</th>
     </tr>
     {% for video in videos %}
     <tr>
         <!--case name-->
         <!--video comes in tuples (video[0] = vid_name, video[1] = vid_id, video[2] = vid_status)-->
+        <td><input type='checkbox' class='vidcheck' value={{ video.vid_id }}></td>
         <td>{{ video.deponent }}</td>
         <td>{{ video.recorded_at }}</td>
         <td><a href = '/show-video/{{ video.vid_id }}' target='_blank'>{{ video.vid_name }}</a></td>
@@ -25,6 +27,71 @@
     </tr>
     {% endfor %}
 </table>
-    
 
+<button type="button" id='downloadClips' value="Download">Download Videos</button>
+<button type="button" id='deleteClips' value="Delete">Delete Videos</button>
+
+<script>
+function collect_checked_vids(evt){
+
+    //get an array of all the checked clips
+    var checked_vids = $('.vidcheck:checkbox:checked')
+    var vidsToDL = [];
+    for(var i = 0; i < checked_vids.length; i++){
+        console.log(checked_vids[i].value)
+        vidsToDL.push(checked_vids[i].value)
+    }
+    vids = vidsToDL.toString();
+    console.log(vids)
+    var formInputs = {
+        'clips': vids,
+        'call_func': evt.currentTarget.id
+    }
+
+    var all_cboxes = $('.vidcheck:checkbox')
+    all_cboxes.prop('checked', false);
+
+    if (evt.currentTarget.id == 'downloadClips') {
+        console.log("download")
+        //send direction to server
+        //download function called from the handle-clips route
+        $.post('/handle-videos', formInputs, function() {
+        console.log('request complete')
+        location.reload();
+        });
+    }
+    else if (evt.currentTarget.id == 'deleteClips') {
+        console.log("delete")
+        var confirm_delete = confirm('Are you sure you want to delete '+checked_vids.length+' clips?\nThis action cannot be undone.');
+        //send direction to server
+        //delete function called from the handle-clips route
+        if (confirm_delete == true)
+            $.post('/handle-videos', formInputs, function() {
+                console.log('request complete')
+                location.reload();
+            });
+    }
+}
+
+function toggleChecks(evt) {
+    var status = evt.currentTarget.checked
+    console.log(status)
+    var all_cboxes = $('.vidcheck:checkbox')
+    if (status == true) {
+        console.log("if")
+        all_cboxes.prop('checked', true);
+    }
+    else {
+        console.log("else")
+        all_cboxes.prop('checked', false);
+    }
+
+}
+
+$('#downloadClips').on('click', collect_checked_vids)
+$('#deleteClips').on('click', collect_checked_vids)
+$('#select-all').on('change', toggleChecks)
+
+
+</script>
 {% endblock %}

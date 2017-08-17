@@ -163,41 +163,45 @@ def create_case(case_name, owner_id):
     session = db_session()
     
     # check if that case name already exists
-    case_check = db_session.query(Case).filter(Case.case_name == case_name).first()
+    case_check = session.query(Case).filter(Case.case_name == case_name).first()
     
     if case_check is None:
         #instantiate a new case in the db
         new_case = Case(case_name=case_name, owner_id=owner_id)
         #prime and commit the case to the db
-        db.session.add(new_case)
-        db.session.commit()
-        
+        session.add(new_case)
+        session.commit()
+
         #get the newly assigned case_id
         case_id = new_case.case_id
-        
+
+        #close the session
+        db_session.remove()
+
         #return the case object
         return Case.query.get(case_id)
 
 def check_user(email):
     """Checks for user in database and adds if new"""
 
-    with app.app_context():
-        #check if a user with that email exists already
-        #gets the user object for that email address
-        user_check = User.query.filter_by(email=email).first()
+    session = db_session()
+    #check if a user with that email exists already
+    #gets the user object for that email address
+    user_check = session.query(User).filter(User.email==email).first()
 
-        # if user already exists associate the user with the new case
-        if user_check is None:
-            #if the user is not registered - add them to the database
-            #they can add their password and name when they officially register
-            user = User(email=email)
-            #prime user to be added to db
-            db.session.add(user)
-            #commit user to db
-            db.session.commit()
-            user_check = User.query.get(user.user_id)
+    # if user already exists associate the user with the new case
+    if user_check is None:
+        # if the user is not registered - add them to the database
+        # they can add their password and name when they officially register
+        # make all emails lowercase to reduce doubled entries
+        user = User(email=email.lower())
+        #prime user to be added to db
+        session.add(user)
+        #commit user to db
+        session.commit()
+        user_check = session.query(User).get(user.user_id)
 
-        return user_check
+    return user_check
 
 
 def validate_usercase(case_id, user_id):
@@ -206,6 +210,7 @@ def validate_usercase(case_id, user_id):
     case_user_check = session.query(UserCase).filter(UserCase.case_id == case_id, 
                                                      UserCase.user_id == user_id).first()
 
+    db_session.remove()
     return case_user_check
 
 
@@ -224,6 +229,7 @@ def update_usercase(case_id, user_id):
         session.add(user_case)
         session.commit()
 
+    db_session.remove()
     # return case_user_check so we can determine if the association is new or not
     # if case_user_check is None - we can use that in the add-users route
     return case_user_check
@@ -238,12 +244,12 @@ def show_case_settings(case_id):
 
     if user_permitted:
         # get all users associated with this case id
-        users = db.session.query(User.fname, User.lname, User.email).join(
+        users = db.session.query(User.fname, User.lname, User.email, User.user_id).join(
                                  UserCase).filter(UserCase.case_id == case_id).all()
 
         # get the tags for this case and the default tags
         tags = get_tags(case_id)
-
+        print "\n\n\n\n\n\n", tags
         return render_template('case-settings.html', users=users, case_id=case_id, tags=tags)
     else:
         flash("You don't have permission to view that case")
@@ -253,18 +259,20 @@ def show_case_settings(case_id):
 def get_tags(case_id):
     """Returns the tags associated with a case and the default tags"""
 
+    session = db_session()
     # db_session is a scoped session
     # query the db for the DEFAULT case
-    default_case = db_session.query(Case).filter(Case.case_name == "DEFAULT").first()
+    default_case = session.query(Case).filter(Case.case_name == "DEFAULT").first()
     # find all the tags for this provided case as well as default tags
-    tags = db_session.query(Tag).filter((Tag.case_id == case_id) | 
-                                        (Tag.case_id == default_case.case_id)).all()
+    tags = session.query(Tag).filter((Tag.case_id == case_id) | 
+                                     (Tag.case_id == default_case.case_id)).all()
 
+    db_session.remove()
     # return a list of tags
     return tags
 
 
-@app.route('/add-users', methods=["POST"])
+@app.route('/add-usercase', methods=["POST"])
 def add_users_to_case():
     """Adds a user to a specific case"""
 
@@ -299,6 +307,21 @@ def add_users_to_case():
 
     return update_users
 
+@app.route('/remove-usercase', methods=["POST"])
+def remove_user_from_case():
+    """Removes a user from a specific case"""
+
+    # get data
+    case_id = request.form.get('case_id')
+    user_id = request.form.get('del_user')
+    # use validate usercase to return the usercase obj for this user/case
+    usercase = validate_usercase(case_id, user_id)
+    print "\n\n\n\n\n\n", db.session, "\n\n\n\n\n\n\n"
+    db.session.delete(usercase)
+    db.session.commit()
+
+    return "Usercase removed"
+
 
 def get_user_by_email(email):
     """Creates new user and returns new or exisiting user object"""
@@ -318,6 +341,8 @@ def get_user_by_email(email):
         session.add(user_check)
         #commit user to db
         session.commit()
+    #close the scoped session
+    db_session.remove()
 
     return user_check
 
@@ -350,6 +375,33 @@ def add_tags_to_case():
             db.session.commit()
 
     return "Tags were added successfully"
+
+@app.route('/delete-tag', methods=['POST'])
+def remove_tag_and_assoc():
+    """Removes a tag from a case and removes associations from clips"""
+
+    # get data
+    case_id = request.form.get('case_id')
+    tag_id = request.form.get('del_tag')
+
+    tag = Tag.query.get(tag_id)
+
+    # get all clips associated with that tag
+    tagged_clips = tag.clips
+
+    # delete the cliptag association for each clip so we can delete the tag itself
+    for clip in tagged_clips:
+        print "\n\n\n\n\n\n\n\n\n", clip
+        cliptag = ClipTag.query.filter(ClipTag.clip_id == clip.clip_id, 
+                                       ClipTag.tag_id == tag.tag_id).first()
+        db.session.delete(cliptag)
+        db.session.commit()
+
+    # delete the tag itself from the db
+    db.session.delete(tag)
+    db.session.commit()
+
+    return "Usercase removed"
 
 
 @app.route('/add-cliptags', methods=["POST"])
@@ -628,8 +680,8 @@ def make_clips(file_loc, clips, vid_id, user_id):
         new_clip.write_videofile(clip_name, codec="libx264")
         
     #establish session with aws
-    session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
-    s3 = session.resource('s3')
+    s3session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
+    s3 = s3session.resource('s3')
     while len(clips_to_upload) > 0:
         # pop the clip from the front of the list
         clip_path = clips_to_upload.pop(0)
@@ -649,10 +701,11 @@ def file_done(vid_name):
     """Updates the clip status once upload is complete"""
 
     print "\n\n\n\n\n\n\n  STATUS UPDATE \n\n\n\n\n\n\n"
-    with app.app_context():
-        clip = Clip.query.filter(Clip.clip_name == vid_name).first()
-        clip.clip_status = 'Ready'
-        db.session.commit()
+    scoped_session = db_session()
+    clip = scoped_session.query(Clip).filter(Clip.clip_name == vid_name).first()
+    clip.clip_status = 'Ready'
+    scoped_session.commit()
+    db_session.remove()
 
 
 @app.route('/clips/<vid_id>')
@@ -730,24 +783,58 @@ def handle_clips():
     req_clips = db.session.query(Clip.clip_name, Clip.clip_id).join(Video).filter(
                                 (Clip.clip_id.in_(selected_clips)) &
                                 (Video.vid_id == vid_id)).all();
-
+    
     func_to_perform = request.form.get('call_func')
 
     if func_to_perform == 'downloadClips':
         download_all_clips(req_clips, vid_name, g.current_user)
     elif func_to_perform == 'deleteClips':
-        delete_selected_clips(req_clips)
+        delete_selected_clips(req_clips, "clips")
+    elif func_to_perform == 'stitchClips':
+        download_all_clips(req_clips, vid_name, g.current_user, True)
 
     return redirect('/clips/{}'.format(vid_id))
 
 
-def download_all_clips(clips, vid_name, user):
+@app.route('/handle-videos', methods=['POST'])
+@login_required
+def handle_videos():
+    """handle the selected full videos and perform action based on btn clicked"""
+
+    # get the list of requested clips
+    selected_vids = request.form.get('clips')
+    
+    # get a list of the clip objects from the db [(clip_name, clip_id)]
+    selected_vids = selected_vids.strip()
+    selected_vids = selected_vids.split(",")
+
+    print "\n\n\n\n\n\n", selected_vids, "\n\n\n\n\n\n"
+    
+    req_vids = Video.query.filter(Video.vid_id.in_(selected_vids)).all()
+
+    case_id = req_vids[0].case.case_id
+    case_name = req_vids[0].case.case_name
+    case_name = case_name.replace(" ", "_")
+    case_name = case_name.replace(".", "_")
+
+    func_to_perform = request.form.get('call_func')
+
+    if func_to_perform == 'downloadClips':
+        download_all_clips(req_vids, case_name, g.current_user)
+    elif func_to_perform == 'deleteClips':
+        delete_selected_clips(req_vids, "vids")
+
+    return redirect('/cases/{}'.format(case_id))
+
+def download_all_clips(clips, vid_name, user, stitch=False):
     """Download selected clips and save as a zip"""
     
     print "\n\n\n\n\n", clips, "\n\n\n\n\n"
     user_email = user.email
     user_id = user.user_id
     clip_urls = []
+    if stitch is True:
+        stitch_clips = []
     zip_url = "{}/zips/{}.zip".format(user_id, vid_name)
     with zipfile.ZipFile("static/"+zip_url, 'w') as clipzip:
         for clip in clips:
@@ -757,28 +844,87 @@ def download_all_clips(clips, vid_name, user):
             s3 = boto3.resource('s3')
             # s3.Object(BUCKET_NAME, file_name).download_file(save_loc)
             s3.meta.client.download_file(BUCKET_NAME, file_name, save_loc)
-            clipzip.write(save_loc, vid_name+"/"+file_name)
+            if stitch is False:
+                clipzip.write(save_loc, vid_name+"/"+file_name)
+            else:
+                clip_vf = VideoFileClip(save_loc)
+                stitch_clips.append(clip_vf)
+        if stitch is True:
+            print "\n\n\n\n\n\n stitching \n\n\n\n\n\n"
+            stitched_clip = concatenate_videoclips(stitch_clips)
+            stitched_url = 'static/temp/'+vid_name+'compilation.mp4'
+            stitched_clip.write_videofile(stitched_url)
+            clipzip.write(stitched_url, vid_name+"/"+vid_name+'compilation.mp4')
     email_url = url_for('static', filename=zip_url)
     send_email(user_email, email_url)
 
-def delete_selected_clips(clips):
+def delete_selected_clips(clips, vid_type):
     """Delete selected clips from aws and db"""
 
-    print "\n\n\n\n\n", clips, "\n\n\n\n\n"
-    clip_urls = []
+    # blank list to hold all files to delete for aws
     delete_aws = []
+    
     #connect to aws
-    session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
-    s3 = session.resource('s3')
+    s3session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
+    s3 = s3session.resource('s3')
     bucket = s3.Bucket(BUCKET_NAME)
-    with app.app_context():
-        for clip in clips:
+
+    scoped_session = db_session()
+    
+    # go through all clip/video ids and delete accordingly
+    for clip in clips:
+        if vid_type == "clips":
             #use the clip_id part of the tuple to get the clip obj to delete
-            clip_to_del = Clip.query.get(clip[1])
-            db.session.delete(clip_to_del)
-            db.session.commit()
+            file_to_del = scoped_session.query(Clip).get(clip[1])
+            
+            # get and delete any cliptag associations for that clip
+            tags = file_to_del.tags
+            for tag in tags:
+                # find the cliptag association
+                cliptag = scoped_session.query(ClipTag).filter(ClipTag.tag_id == tag.tag_id, 
+                                                               ClipTag.clip_id == file_to_del.clip_id).first()
+                # delete the cliptags so we can delete the clip itself
+                scoped_session.delete(cliptag)
+                scoped_session.commit()
+            # add the clip name to a list of clips to be deleted from aws
             delete_aws.append({'Key': clip[0]})
+        if vid_type == "vids":
+            file_to_del = scoped_session.query(Video).get(clip.vid_id)
+
+            # get any clips associated with this video - list of clip objs
+            clips = file_to_del.clips
+
+            for clip in clips:
+                # get and delete any cliptag associations for that clip
+                tags = clip.tags
+                for tag in tags:
+                    # find the cliptag association
+                    cliptag = scoped_session.query(ClipTag).filter(ClipTag.tag_id == tag.tag_id, 
+                                                                   ClipTag.clip_id == clip.clip_id).first()
+
+                    # delete the cliptags so we can delete the clip itself
+                    scoped_session.delete(cliptag)
+                    scoped_session.commit()
+
+                # delete the clip itself
+                scoped_session.delete(clip)
+                scoped_session.commit()
+
+                # add it to list of files to remove from aws
+                delete_aws.append({'Key': clip.clip_name})
+
+            # add main vid to list of files to remove from aws
+            delete_aws.append({'Key': file_to_del.vid_name})
+
+        # delete the originally selected file
+        scoped_session.delete(file_to_del)
+        scoped_session.commit()
+    
+    # close session
+    db_session.remove()
+            
     response = bucket.delete_objects(Delete={'Objects': delete_aws})
+
 
 
 def remove_file(file_path):

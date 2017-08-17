@@ -1,23 +1,34 @@
 {% extends 'base.html' %}
 {% block title %}Case List{% endblock %}
 
+{% block addToHead %}
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.1/bootstrap-table.min.css">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.1/bootstrap-table.min.js"></script>
+
+    <!-- Latest compiled and minified Locales -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.1/locale/bootstrap-table-zh-CN.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <h1>Video source: {{ main_vid.vid_name }}</h1>
 <a href="/show-video/{{ main_vid.vid_id }}" target='_blank'><button>Show video</button></a>
 <a href="/trim-video/{{ main_vid.vid_id }}"><button>Trim new clips</button></a>
-<table>
+<table data-toggle="table">
     <tr>
-    <th><input type='checkbox' id="select-all"></th>
-    <th>Clip name</th>
-    <th>Start</th>
-    <th>End</th>
-    <th>Status</th>
-    <th>Created by<th>
-    <th>Tags</th>
+        <th><input type='checkbox' id="select-all"></th>
+        <th>Clip name</th>
+        <th>Start</th>
+        <th>End</th>
+        <th>Status</th>
+        <th>Created by<th>
+        <th>Tags</th>
     </tr>
     {% for clip in clips %}
     <tr>
-        <td><input type='checkbox' name={{ clip.clip_id }} class='vidcheck' value={{ clip.clip_id }}>
+        <td><input type='checkbox' class='vidcheck' value={{ clip.clip_id }}></td>
         <td><a href = '/show-clip/{{ clip.clip_id }}' target='_blank'>{{ clip.clip_name }}</td></a>
         <td>{{ clip.start_at }}</td>
         <td>{{ clip.end_at }}</td>
@@ -39,6 +50,7 @@
     </tr>
     {% endfor %}
 </table>
+<button type="button" id='stitchClips' value="Stitch">Combine and Download Clips</button>
 <button type="button" id='downloadClips' value="Download">Download Clips</button>
 <button type="button" id='deleteClips' value="Delete">Delete Clips</button>
     
@@ -63,7 +75,16 @@ function collect_checked_vids(evt){
     var all_cboxes = $('.vidcheck:checkbox')
     all_cboxes.prop('checked', false);
 
-    if (evt.currentTarget.id == 'downloadClips') {
+    if (evt.currentTarget.id == 'stitchClips') {
+        console.log("stitch")
+        //send direction to server
+        //download function called from the handle-clips route
+        $.post('/handle-clips', formInputs, function() {
+        console.log('request complete')
+        location.reload();
+        });
+    }
+    else if (evt.currentTarget.id == 'downloadClips') {
         console.log("download")
         //send direction to server
         //download function called from the handle-clips route
@@ -100,6 +121,7 @@ function toggleChecks(evt) {
 
 }
 
+$('#stitchClips').on('click', collect_checked_vids)
 $('#downloadClips').on('click', collect_checked_vids)
 $('#deleteClips').on('click', collect_checked_vids)
 $('#select-all').on('change', toggleChecks)

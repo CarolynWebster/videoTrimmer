@@ -4,11 +4,15 @@
 {% block content %}
 <table id='user-table'>
     <tr>
-    <th>User</th>
-    <th>Email</th>
+        <th></th>
+        <th>User</th>
+        <th>Email</th>
     </tr>
     {% for user in users %}
-    <tr>
+    <tr id="User_{{ user.user_id }}">
+        <td><button type="button" id={{ user.user_id }} class="close remove-user-x" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button></td>
         <!--case name-->
         <td>{{ user.fname }} {{ user.lname }}</td>
         <td>{{ user.email }}</td>
@@ -19,11 +23,26 @@
 <button id='add_users'>Add new users</button>
 
 <h1>Tags</h1>
-    <ul>
-        {% for tag in tags %}
-            <li>{{ tag.tag_name }}</li>
-        {% endfor %}
-    </ul>
+<table id='tags-table'>
+    <tr>
+        <th></th>
+        <th>Tag</th>
+    </tr>
+    {% for tag in tags %}
+        <tr id="Tag_{{ tag.tag_id }}">
+            {% if tag.case_id == case_id|int %}
+                <td><button type="button" id={{ tag.tag_id }} class="close remove-tag-x" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button></td>
+            {% else %}
+                <td></td>
+            {% endif %}
+            <!--case name-->
+            <td>{{ tag.tag_name }}</td>
+        </tr>
+    {% endfor %}
+</table>
+
 <textarea id="new_tags_input" placeholder="Mock Trial, Appeal, Arbitration"></textarea>
 <button id='add_tags'>Add new tags</button>
     
@@ -36,13 +55,35 @@
             'case_id': {{ case_id }},
         }
         console.log('clicked');
-        $.post('/add-users', formInputs, function (results) {
+        $.post('/add-usercase', formInputs, function (results) {
             //refresh the page after adding users
             $('#user-table').append(results)
             console.log(results)
         });
     }
     $('#add_users').on('click', updateUsers)
+</script>
+
+<script>
+    function deleteUser(evt){
+        var confirm_delete = confirm("Are you sure you want to remove this user? This action cannot be undone.")
+
+        if (confirm_delete === true){
+            var user = evt.currentTarget.id;
+            var formInputs = {
+                'del_user': user,
+                'case_id': {{ case_id }}
+            }
+            $.post('/remove-usercase', formInputs, function(results) {
+                //get id for tr holding that user
+                var user_row = "#User_" + user;
+                $(user_row).remove()
+                console.log(results)
+            });
+        }
+
+    }
+    $('.remove-user-x').on('click', deleteUser)
 </script>
 
 <script>
@@ -59,4 +100,27 @@
     }
     $('#add_tags').on('click', updateTags)
 </script>
+
+<script>
+    function deleteTag (evt){
+        var confirm_delete = confirm("Are you sure you want to remove this tag? This action cannot be undone and will remove all associations with this tag.")
+
+        if (confirm_delete === true){
+            var tag = evt.currentTarget.id;
+            var formInputs = {
+                'del_tag': tag,
+                'case_id': {{ case_id }}
+            }
+            $.post('/delete-tag', formInputs, function(results) {
+                //get id for tr holding that user
+                var tag_row = "#Tag_" + tag;
+                $(tag_row).remove()
+                console.log(results)
+            });
+        }
+
+    }
+    $('.remove-tag-x').on('click', deleteTag)
+</script>
+
 {% endblock %}

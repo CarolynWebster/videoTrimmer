@@ -133,8 +133,8 @@ class Clip(db.Model):
     created_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     clip_status = db.Column(db.String(10), default='Processing')
 
-    user = db.relationship("User", backref="subclips")
-    video = db.relationship("Video", backref="subclips")
+    user = db.relationship("User", backref="clips")
+    video = db.relationship("Video", backref="clips")
 
     def __repr__(self):
         """useful clip info"""
