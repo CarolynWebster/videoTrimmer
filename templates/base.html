@@ -25,6 +25,8 @@
     <button id='login-btn'>Log Out</button>
 
      <select name='case' id='case-selector'>
+      <option>Change Case View</option>
+      <option value="All">All Cases</option>
     {% for case in g.user_cases %}
       <option value={{ case.case_id }}>{{ case.case_name }}</option>
     {% endfor %}
@@ -55,7 +57,14 @@
     <script>
       function changeCase(evt) {
         var new_case = $('#case-selector').val();
-        var new_url = '/cases/' + new_case;
+        var new_url;
+        if (new_case === "All"){
+          console.log("All")
+          new_url = '/cases';
+        }
+        else{
+          new_url = '/cases/' + new_case;
+        }
         window.location.href = new_url;
       }
 

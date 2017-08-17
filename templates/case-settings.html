@@ -2,7 +2,7 @@
 {% block title %}Case Settings{% endblock %}
 
 {% block content %}
-<table>
+<table id='user-table'>
     <tr>
     <th>User</th>
     <th>Email</th>
@@ -30,13 +30,16 @@
 <script>
     function updateUsers (){
         var new_users = $('#new_users_input').val()
+        console.log(new_users)
         var formInputs = {
             'new_users': new_users,
             'case_id': {{ case_id }},
         }
-        $.post('/add-users', formInputs, function () {
+        console.log('clicked');
+        $.post('/add-users', formInputs, function (results) {
             //refresh the page after adding users
-            location.reload();
+            $('#user-table').append(results)
+            console.log(results)
         });
     }
     $('#add_users').on('click', updateUsers)

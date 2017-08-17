@@ -28,8 +28,6 @@ import smtplib
 
 from email.mime.text import MIMEText
 
-import base64
-
 # from email.mime.multipart import MIMEMultipart
 # from email.mime.text import MIMEText
 
@@ -65,10 +63,12 @@ def pre_process_all_requests():
 
     # get the user id from the session
     user_id = session.get('user_id')
+
     # if there is an id in the session - get the user object
     if user_id:
         g.current_user = User.query.get(user_id)
         g.user_cases = g.current_user.cases
+
     # otherwise return None
     else:
         g.current_user = None
@@ -88,9 +88,10 @@ def show_cases():
     """Show user a list of cases they are associated with"""
 
     # get all cases associated with the logged in user id
-    cases = db.session.query(Case.case_name, 
+    cases = db.session.query(Case.case_name,
                              UserCase.case_id).join(UserCase).filter(
                              UserCase.user_id == g.current_user.user_id).all()
+    
     # cases = [('Us v. Them, et al', 123), ('Your mom v. All slams', 456), ('Puppies v. Kittens', 789)]
     return render_template('/cases.html', cases=cases)
 
@@ -100,11 +101,19 @@ def show_cases():
 def show_case_vids(case_id):
     """Show all full videos associated with this case"""
 
-    # vids = Video.query.filter_by(case_id=case_id).all()
-    vids = Video.query.filter(Video.case_id==case_id).all()
-    this_case = Case.query.get(case_id)
+    user_permitted = validate_usercase(case_id, g.current_user.user_id)
+    
+    if user_permitted:
+        # get all videos that match the provided case_id
+        vids = Video.query.filter(Video.case_id==case_id).all()
+        
+        # get the case object for the provided case_id
+        this_case = Case.query.get(case_id)
 
-    return render_template('case-vids.html', videos=vids, case=this_case)
+        return render_template('case-vids.html', videos=vids, case=this_case)
+    else:
+        flash("You don't have permission to view that case")
+        return redirect('/cases')
 
 @app.route('/register-case', methods=["GET", "POST"])
 @login_required
@@ -128,6 +137,7 @@ def register_case():
         other_users = other_users.replace(" ", "")
         # split on the comma
         user_emails = other_users.split(",")
+        
         # append the existing user to the list of approved users
         user_emails.append(current_user.email)
 
@@ -137,13 +147,12 @@ def register_case():
 
         # cycle through the provided emails
         for email in user_emails:
-
             # check_user gets the user object for that email address
             # or registers a new user if the email doesn't exist
             user = check_user(email)
 
             #create an association in the usercases table
-            add_usercase(case_id=case.case_id, user_id=user.user_id)
+            update_usercase(case_id=case.case_id, user_id=user.user_id)
 
         return redirect('/cases')
 
@@ -151,14 +160,21 @@ def register_case():
 def create_case(case_name, owner_id):
     """Creates a new case in the database"""
 
-    with app.app_context():
+    session = db_session()
+    
+    # check if that case name already exists
+    case_check = db_session.query(Case).filter(Case.case_name == case_name).first()
+    
+    if case_check is None:
         #instantiate a new case in the db
         new_case = Case(case_name=case_name, owner_id=owner_id)
         #prime and commit the case to the db
         db.session.add(new_case)
         db.session.commit()
+        
         #get the newly assigned case_id
         case_id = new_case.case_id
+        
         #return the case object
         return Case.query.get(case_id)
 
@@ -184,24 +200,43 @@ def check_user(email):
         return user_check
 
 
-def add_usercase(case_id, user_id):
-    """Checks for user in database and adds if new"""
+def validate_usercase(case_id, user_id):
+    session = db_session()
+    # check if the usercase exists already
+    case_user_check = session.query(UserCase).filter(UserCase.case_id == case_id, 
+                                                     UserCase.user_id == user_id).first()
 
-    with app.app_context():
+    return case_user_check
+
+
+def update_usercase(case_id, user_id):
+    """Checks for user in database and adds if new - returns new usercase obj"""
+
+    session = db_session()
+    # check if the usercase exists already
+    case_user_check = validate_usercase(case_id, user_id)
+    
+    # if the relationship doesn't exist - create it
+    if case_user_check is None:
         #create an association in the usercases table
         user_case = UserCase(case_id=case_id, user_id=user_id)
-        db.session.add(user_case)
-        db.session.commit()
+        print "\n\n\n\n\n\n", user_case, "\n\n\n\n\n\n"
+        session.add(user_case)
+        session.commit()
 
-    return user_case
+    # return case_user_check so we can determine if the association is new or not
+    # if case_user_check is None - we can use that in the add-users route
+    return case_user_check
 
 
 @app.route('/case-settings/<case_id>')
 def show_case_settings(case_id):
     """Shows user settings for chosen case"""
 
-    user_check = check_user_permissions(g.current_user.user_id, case_id)
-    if user_check:
+    # check if the user has permission to view this case
+    user_permitted = validate_usercase(case_id, g.current_user.user_id)
+
+    if user_permitted:
         # get all users associated with this case id
         users = db.session.query(User.fname, User.lname, User.email).join(
                                  UserCase).filter(UserCase.case_id == case_id).all()
@@ -228,45 +263,63 @@ def get_tags(case_id):
     # return a list of tags
     return tags
 
+
 @app.route('/add-users', methods=["POST"])
 def add_users_to_case():
     """Adds a user to a specific case"""
 
+    # get data
     case_id = request.form.get('case_id')
     user_emails = request.form.get('new_users')
 
     #nix any spaces
     user_emails = user_emails.replace(" ", "")
-
     #split up the emails
     user_emails = user_emails.split(",")
 
+    # start the return string with a <tr> tag
+    update_users = "<tr>"
+
+    # loop through the emails
     for email in user_emails:
-        #check if a user with that email exists already
-        #gets the user object for that email address
-        user_check = User.query.filter_by(email=email).first()
+        # get the user obj for the email
+        # a new user be created if the user is not registered yet
+        user_check = get_user_by_email(email)
+        
+        # Create usercase assocation
+        # update_usercase returns None if the usercase is new
+        case_user_check = update_usercase(case_id, user_check.user_id)
 
-        # if user already exists associate the user with the new case
-        if user_check is None:
-            #if the user is not registered - add them to the database
-            #they can add their password and name when they officially register
-            user = User(email=email)
-            #prime user to be added to db
-            db.session.add(user)
-            #commit user to db
-            db.session.commit()
-            user_check = User.query.filter_by(email=email).first()
+        # if it's a new assocation - add it as a <td> to response string
+        if case_user_check is None:
+            update_users = update_users + "<td>"+email+"</td>"
 
-        case_user_check = UserCase.query.filter(UserCase.case_id == case_id, 
-                                                UserCase.user_id == user_check.user_id).first()
+    # add the closing row tag once all the tds are done
+    update_users = update_users + "</tr>"
 
-        if case_user_check:
-            #create an association in the usercases table
-            user_case = UserCase(case_id=case_id, user_id=user_check.user_id)
-            db.session.add(user_case)
-            db.session.commit()
+    return update_users
 
-    return "Users were added successfully"
+
+def get_user_by_email(email):
+    """Creates new user and returns new or exisiting user object"""
+
+    # create a scoped session to interact with db
+    session = db_session()
+    #check if a user with that email exists already
+    #gets the user object for that email address
+    user_check = session.query(User).filter(User.email == email).first()
+
+    # if user already exists associate the user with the new case
+    if user_check is None:
+        #if the user is not registered - add them to the database
+        #they can add their password and name when they officially register
+        user_check = User(email=email)
+        #prime user to be added to db
+        session.add(user_check)
+        #commit user to db
+        session.commit()
+
+    return user_check
 
 
 @app.route('/add-tags', methods=["POST"])
@@ -286,7 +339,6 @@ def add_tags_to_case():
         #check if a user with that email exists already
         #gets the user object for that email address
         tag_check = Tag.query.filter(Tag.tag_name == tag, Tag.case_id == case_id).first()
-        print 
         # if user already exists associate the user with the new case
         if tag_check is None:
             #if the user is not registered - add them to the database
@@ -310,7 +362,6 @@ def add_cliptags():
 
     #get the tag obj that matches the requested tag
     tag = Tag.query.filter(Tag.tag_name == req_tag).first()
-    print "\n\n\n\n\n\n", tag.tag_name, "\n\n\n\n\n\n"
     clip = Clip.query.get(clip_id)
 
     #check if that tag is associated with that clip already
@@ -322,15 +373,7 @@ def add_cliptags():
         #return the tag to be added to the html
         return tag.tag_name
 
-
-def check_user_permissions(user_id, case_id):
-    """Checks if the users has access to the selected case"""
-    with app.app_context():
-        return UserCase.query.filter(UserCase.user_id == user_id, UserCase.case_id == case_id).first()
-
 # VIDEOS -----------------------------------------------------------------------
-#sample code to upload video obj
-#quinny = Video(case_id=1, vid_url='https://s3-us-west-1.amazonaws.com/videotrim/quinny.mov', added_by=1, added_at=datetime(2007, 12, 5))
 
 @app.route('/upload-video', methods=["GET"])
 @login_required
@@ -347,7 +390,6 @@ def show_upload_form():
 def upload_video():
     """Uploads video to aws"""
 
-    print "\n\n\n\n\n\n\n STARTED \n\n\n\n\n\n\n"
     case_id = request.form.get('case_id')
     video_file = request.files.get("rawvid")
     video_name = video_file.filename
@@ -379,9 +421,10 @@ def upload_aws_db(video_file, video_name, case_id, user_id):
     #start a connection with aws
     session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
     s3 = session.resource('s3')
-    print "\n\n\n\n\n\n\n THREADING MOTHER FUCKER", BUCKET_NAME, video_name, "\n\n\n\n\n\n\n"
+
     # Put the video on aws
     s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file)
+
     # once the upload is complete - update the db status
     update_vid_status(video_name)
 
@@ -405,45 +448,61 @@ def update_vid_status(vid_name):
 def show_video(vid_id):
     """Streams the selected video"""
     
+
     #get the video object
     vid_to_trim = Video.query.get(vid_id)
     vid_name = vid_to_trim.vid_name
+    case_id = vid_to_trim.case.case_id
 
-    #establish connection with s3
-    s3C = boto3.client('s3')
+    user_permitted = validate_usercase(case_id, g.current_user.user_id)
 
-    # generate a url for the video streamer
-    url = s3C.generate_presigned_url(
-        ClientMethod='get_object',
-        Params={
-            'Bucket': BUCKET_NAME,
-            'Key': vid_name
-        }
-    )
+    if user_permitted:
+        #establish connection with s3
+        s3C = boto3.client('s3')
 
-    return render_template('show-video.html', vid_id=vid_id, orig_vid=vid_name, vid_url=url)
+        # generate a url for the video streamer
+        url = s3C.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                'Bucket': BUCKET_NAME,
+                'Key': vid_name
+            }
+        )
 
+        return render_template('show-video.html', vid_id=vid_id, orig_vid=vid_name, vid_url=url)
+    else:
+        flash("You don't have permission to view that case")
+        return redirect('/cases')
 
 # MAKING CLIPS -----------------------------------------------------------------
 @app.route('/trim-video/<vid_id>')
 @login_required
 def trim_video(vid_id):
+    """Load form to get user clip requests"""
+    
     vid_to_trim = Video.query.get(vid_id)
     vid_name = vid_to_trim.vid_name
+    case_id = vid_to_trim.case.case_id
+    # check if user is permitted to see this content
+    user_permitted = validate_usercase(case_id, g.current_user.user_id)
+    if user_permitted:
+        #establish connection with s3
+        s3C = boto3.client('s3')
 
-    #establish connection with s3
-    s3C = boto3.client('s3')
+        #generate a url so the video can be previewed on the form page
+        url = s3C.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                'Bucket': BUCKET_NAME,
+                'Key': vid_name
+            }
+        )
 
-    #generate a url so the video can be previewed on the form page
-    url = s3C.generate_presigned_url(
-        ClientMethod='get_object',
-        Params={
-            'Bucket': BUCKET_NAME,
-            'Key': vid_name
-        }
-    )
+        return render_template('trim-form.html', vid_id=vid_id, orig_vid=vid_name, vid_url=url)
+    else:
+        flash("You don't have permission to view that case")
+        return redirect('/cases')
 
-    return render_template('trim-form.html', vid_id=vid_id, orig_vid=vid_name, vid_url=url)
 
 @app.route('/make-clips', methods=["POST"])
 def get_clip_source():
@@ -454,64 +513,70 @@ def get_clip_source():
     vid_id = request.form.get('vid_id')
     vid_to_trim = Video.query.get(vid_id)
     vid_name = vid_to_trim.vid_name
+    case_id = vid_to_trim.case.case_id
 
     #get the user id
     user_id = g.current_user.user_id
 
-    # get the clip list from the form
-    clip_list = request.form.get('clip-list')
-    clips = clip_list.split(", ")
+    user_permitted = validate_usercase(case_id, user_id)
 
-    # make pathname for location to save temp video
-    save_loc = 'static/temp/'+vid_name
+    if user_permitted:
+        # get the clip list from the form
+        clip_list = request.form.get('clip-list')
+        clips = clip_list.split(", ")
 
-    # trim path to remove the file ext
-    clip_name_base = save_loc[0:-4]
+        # make pathname for location to save temp video
+        save_loc = 'static/temp/'+vid_name
 
-    # save the ext separately
-    file_ext = save_loc[-4:]
+        # trim path to remove the file ext
+        clip_name_base = save_loc[0:-4]
 
-    # make a list to hold any duplicate clip requests
-    repeat_clips = []
+        # save the ext separately
+        file_ext = save_loc[-4:]
 
-    # add the clips to the db - they will show up as processing until they are complete
-    for i in range(len(clips)):
-        # split the start and end times
-        clip = clips[i].split('-')
-        # replace the : with _ since the : cause a filename issue
-        start_time = clip[0].replace(":", "_")
-        end_time = clip[1].replace(":", "_")
-        # stitch together base name with times in file name
-        clip_name = clip_name_base + "-" + start_time + "-" + end_time + file_ext
-        #get just the filename for the aws key
-        key_name = clip_name[clip_name.rfind('/')+1:]
+        # make a list to hold any duplicate clip requests
+        repeat_clips = []
 
-        #check if the clip exists already
-        clip_check = Clip.query.filter_by(clip_name=key_name).first()
-        if clip_check is None:
-            # add the clip to our db
-            db_clip = Clip(vid_id=vid_id, start_at=clip[0], end_at=clip[1], created_by=user_id, clip_name=key_name)
-            db.session.add(db_clip)
-            db.session.commit()
-        elif clip_check.clip_status != 'Ready':
-            # there might have been a processing error - so let the clips be remade
-            pass
-        else:
-            # if we already have the clip note it so we can remove it
-            # before sending clips to be made
-            repeat_clips.append(i)
+        # add the clips to the db - they will show up as processing until they are complete
+        for i in range(len(clips)):
+            # split the start and end times
+            clip = clips[i].split('-')
+            # replace the : with _ since the : cause a filename issue
+            start_time = clip[0].replace(":", "_")
+            end_time = clip[1].replace(":", "_")
+            # stitch together base name with times in file name
+            clip_name = clip_name_base + "-" + start_time + "-" + end_time + file_ext
+            #get just the filename for the aws key
+            key_name = clip_name[clip_name.rfind('/')+1:]
 
-    # sort so the highest indexes are first to avoid index error
-    repeat_clips.sort(reverse=True)
+            #check if the clip exists already
+            clip_check = Clip.query.filter_by(clip_name=key_name).first()
+            if clip_check is None:
+                # add the clip to our db
+                db_clip = Clip(vid_id=vid_id, start_at=clip[0], end_at=clip[1], created_by=user_id, clip_name=key_name)
+                db.session.add(db_clip)
+                db.session.commit()
+            elif clip_check.clip_status != 'Ready':
+                # there might have been a processing error - so let the clips be remade
+                pass
+            else:
+                # if we already have the clip note it so we can remove it
+                # before sending clips to be made
+                repeat_clips.append(i)
 
-    for repeat in repeat_clips:
-        clips.pop(repeat)
+        # sort so the highest indexes are first to avoid index error
+        repeat_clips.sort(reverse=True)
 
-    # send the upload to a separate thread to upload while the user moves on
-    download = threading.Thread(target=download_from_aws, args=(save_loc, clips, vid_id, user_id, vid_name)).start()
+        for repeat in repeat_clips:
+            clips.pop(repeat)
 
-    return redirect('/clips/{}'.format(vid_id))
+        # send the upload to a separate thread to upload while the user moves on
+        download = threading.Thread(target=download_from_aws, args=(save_loc, clips, vid_id, user_id, vid_name)).start()
 
+        return redirect('/clips/{}'.format(vid_id))
+    else:
+        flash("You don't have permission to view that case")
+        return redirect('/cases')
 
 def download_from_aws(save_loc, clips, vid_id, user_id, vid_name):
     """Downloads file from aws"""
@@ -562,7 +627,6 @@ def make_clips(file_loc, clips, vid_id, user_id):
         # save the clip to our temp file location
         new_clip.write_videofile(clip_name, codec="libx264")
         
-
     #establish session with aws
     session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
     s3 = session.resource('s3')
@@ -579,6 +643,7 @@ def make_clips(file_loc, clips, vid_id, user_id):
         else:
             #if it wasn't done being written yet - add it back to the list
             clips_to_upload.append(clip_path)
+
 
 def file_done(vid_name):
     """Updates the clip status once upload is complete"""
@@ -597,14 +662,22 @@ def show_all_clips(vid_id):
 
     #get a list of all the clips associated with that video id
     # TO DO join query to get user name who created clip
-    clips = Clip.query.filter(Clip.vid_id == vid_id).all()
     main_vid = Video.query.get(vid_id)
+    case_id = main_vid.case.case_id
 
-    # get the tags for this case and the default tags
-    tags = get_tags(main_vid.case_id)
-    # default_case = Case.query.filter_by(case_name = "DEFAULT").first()
-    # tags = Tag.query.filter((Tag.case_id == default_case.case_id) | (Tag.case_id == main_vid.case.case_id)).all()
-    return render_template('vid-clips.html', main_vid=main_vid, clips=clips, tags=tags)
+    user_permitted = validate_usercase(case_id, g.current_user.user_id)
+
+    if user_permitted:
+        clips = Clip.query.filter(Clip.vid_id == vid_id).all()
+
+        # get the tags for this case and the default tags
+        tags = get_tags(main_vid.case_id)
+        
+        return render_template('vid-clips.html', main_vid=main_vid, clips=clips, tags=tags)
+    else:
+        flash("You don't have permission to view that case")
+        return redirect('/cases')
+
 
 @app.route('/show-clip/<clip_id>')
 @login_required
@@ -614,18 +687,27 @@ def show_clip(clip_id):
     clip_to_show = Clip.query.get(clip_id)
     clip_name = clip_to_show.clip_name
 
-    #establish connection with s3
-    s3C = boto3.client('s3')
+    # get the case id associated with this clip
+    case_id = clip_to_show.video.case.case_id
 
-    url = s3C.generate_presigned_url(
-        ClientMethod='get_object',
-        Params={
-            'Bucket': BUCKET_NAME,
-            'Key': clip_name
-        }
-    )
+    user_permitted = validate_usercase(case_id, g.current_user.user_id)
 
-    return render_template('show-video.html', vid_id=clip_id, orig_vid=clip_name, vid_url=url)
+    if user_permitted:
+        #establish connection with s3
+        s3C = boto3.client('s3')
+
+        url = s3C.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                'Bucket': BUCKET_NAME,
+                'Key': clip_name
+            }
+        )
+
+        return render_template('show-video.html', vid_id=clip_id, orig_vid=clip_name, vid_url=url)
+    else:
+        flash("You don't have permission to view that case")
+        return redirect('/cases')
 
 
 @app.route('/handle-clips', methods=['POST'])
@@ -701,7 +783,7 @@ def delete_selected_clips(clips):
 
 def remove_file(file_path):
     """removes file from temp folder once uploaded"""
-    
+
     os.remove(file_path)
 
 # USER REGISTRATION/LOGIN-------------------------------------------------------
