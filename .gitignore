@@ -4,7 +4,7 @@ Video_Project/
 quinny*
 .DS*
 vidtrimmer.sql
-secrets*
+*secret*
 static/temp/
 previous/
 *.zip

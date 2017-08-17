@@ -26,6 +26,10 @@ import threading
 
 import smtplib
 
+from email.mime.text import MIMEText
+
+import base64
+
 # from email.mime.multipart import MIMEMultipart
 # from email.mime.text import MIMEText
 
@@ -648,19 +652,22 @@ def handle_clips():
     func_to_perform = request.form.get('call_func')
 
     if func_to_perform == 'downloadClips':
-        download_all_clips(req_clips, vid_name)
+        download_all_clips(req_clips, vid_name, g.current_user)
     elif func_to_perform == 'deleteClips':
         delete_selected_clips(req_clips)
 
     return redirect('/clips/{}'.format(vid_id))
 
 
-def download_all_clips(clips, vid_name):
+def download_all_clips(clips, vid_name, user):
     """Download selected clips and save as a zip"""
     
     print "\n\n\n\n\n", clips, "\n\n\n\n\n"
+    user_email = user.email
+    user_id = user.user_id
     clip_urls = []
-    with zipfile.ZipFile(vid_name+'.zip', 'w') as clipzip:
+    zip_url = "{}/zips/{}.zip".format(user_id, vid_name)
+    with zipfile.ZipFile("static/"+zip_url, 'w') as clipzip:
         for clip in clips:
             file_name = clip[0]
             save_loc = 'static/temp/'+file_name
@@ -669,6 +676,8 @@ def download_all_clips(clips, vid_name):
             # s3.Object(BUCKET_NAME, file_name).download_file(save_loc)
             s3.meta.client.download_file(BUCKET_NAME, file_name, save_loc)
             clipzip.write(save_loc, vid_name+"/"+file_name)
+    email_url = url_for('static', filename=zip_url)
+    send_email(user_email, email_url)
 
 def delete_selected_clips(clips):
     """Delete selected clips from aws and db"""
@@ -783,6 +792,56 @@ def register_user():
         flash('You have successfully registered. Please log in.')
     return redirect("/")
 
+
+# EMAILING USER UPDATES --------------------------------------------------------
+
+gmail_user = os.environ['GMAIL_USER']
+gmail_password = os.environ['GMAIL_PASS']
+
+def create_message(sender, to, subject, message_text):
+    """Create a message for an email.
+
+    Args:
+    sender: Email address of the sender.
+    to: Email address of the receiver.
+    subject: The subject of the email message.
+    message_text: The text of the email message.
+
+    Returns:
+    An object containing a base64url encoded email object.
+    """
+    print "\n\n\n\n", sender, to, subject, message_text, "\n\n\n\n\n"
+
+    message = MIMEText(message_text, 'html')
+    message['to'] = to
+    message['from'] = sender
+    message['subject'] = subject
+    print "\n\n\n\n\n", message, "\n\n\n\n\n"
+    return message.as_string()
+    # return {'raw': base64.urlsafe_b64encode(message.as_string())}
+
+
+def send_email(recipient, file_url):
+    """Sends user a notification email"""
+
+    sent_from = gmail_user
+    to = recipient
+    subject = 'Update from Cut To The Point'
+    body = 'Hey, Your video is ready! Here is a link <a href=http://localhost:5000{}>to download</a>'.format(file_url)
+
+    print "\n\n\n\n", sent_from, to, subject, body, "\n\n\n\n\n"
+    email_text = create_message(sent_from, to, subject, body)
+
+    try:
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.ehlo()
+        server.login(gmail_user, gmail_password)
+        server.sendmail(sent_from, to, email_text)
+        server.close()
+
+        print 'Email sent!'
+    except:
+        print 'Something went wrong...'
 
 if __name__ == "__main__":
     # We have to set debug=True here, since it has to be True at the

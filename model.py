@@ -77,6 +77,23 @@ class UserCase(db.Model):
                                                          self.user_id)
 
 
+class Zip(db.Model):
+    """A zip file of clips"""
+
+    __tablename__ = "zips"
+
+    zip_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    zip_name = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    vid_id = db.Column(db.Integer, db.ForeignKey('videos.vid_id'), nullable=False)
+
+    user = db.relationship("User", backref="zips")
+
+    def __repr__(self):
+        """useful zip info"""
+
+        return "<Zip zip_id={} name={}>".format(self.zip_id, self.zip_name)
+
 class Video(db.Model):
     """A full video"""
 
