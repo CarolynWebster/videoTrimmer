@@ -3,10 +3,12 @@
 
 {% block content %}
 <a href="/register-case"><button>Register a new case</button></a>
-<table>
-    <tr>
-    <th>Case name</th>
-    </tr>
+<table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Case Name</th>
+      </tr>
+    </thead>
     {% for case in cases %}
     <tr>
         <!--case name-->
