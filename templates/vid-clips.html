@@ -13,6 +13,7 @@
 {% endblock %}
 
 {% block content %}
+<h1>Case: <a href = "../cases/{{ main_vid.case.case_id }}">{{ main_vid.case.case_name }}</a>
 <h1>Video source: {{ main_vid.vid_name }}</h1>
 <a href="/show-video/{{ main_vid.vid_id }}" target='_blank'><button>Show video</button></a>
 <a href="/trim-video/{{ main_vid.vid_id }}"><button>Trim new clips</button></a>

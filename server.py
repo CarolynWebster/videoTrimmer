@@ -1,4 +1,6 @@
 """Video Trimmer"""
+
+# will consolidate after initial development - easier to keep track this way
 import imageio
 imageio.plugins.ffmpeg.download()
 
@@ -26,10 +28,9 @@ import threading
 
 import smtplib
 
-from email.mime.text import MIMEText
+import arrow
 
-# from email.mime.multipart import MIMEMultipart
-# from email.mime.text import MIMEText
+from email.mime.text import MIMEText
 
 app = Flask(__name__)
 
@@ -45,6 +46,8 @@ app.secret_key = "ABC"
 
 app.jinja_env.undefined = StrictUndefined
 
+
+# BEFORE REQUEST/LOGIN WRAPPER -------------------------------------------------
 
 def login_required(f):
     @wraps(f)
@@ -74,13 +77,18 @@ def pre_process_all_requests():
         g.current_user = None
 
 
+# HOMEPAGE ---------------------------------------------------------------------
+
+
 @app.route('/')
 def homepage():
     """Load homepage"""
 
     return render_template('index.html')
 
+
 # CASES ------------------------------------------------------------------------
+
 
 @app.route('/cases')
 @login_required
@@ -89,9 +97,9 @@ def show_cases():
 
     # get all cases associated with the logged in user id
     cases = db.session.query(Case.case_name,
-                             UserCase.case_id).join(UserCase).filter(
-                             UserCase.user_id == g.current_user.user_id).all()
-    
+                            UserCase.case_id).join(UserCase).filter(
+                            UserCase.user_id == g.current_user.user_id).all()
+
     # cases = [('Us v. Them, et al', 123), ('Your mom v. All slams', 456), ('Puppies v. Kittens', 789)]
     return render_template('/cases.html', cases=cases)
 
@@ -102,11 +110,11 @@ def show_case_vids(case_id):
     """Show all full videos associated with this case"""
 
     user_permitted = validate_usercase(case_id, g.current_user.user_id)
-    
+
     if user_permitted:
         # get all videos that match the provided case_id
-        vids = Video.query.filter(Video.case_id==case_id).all()
-        
+        vids = Video.query.filter(Video.case_id == case_id).all()
+
         # get the case object for the provided case_id
         this_case = Case.query.get(case_id)
 
@@ -114,6 +122,7 @@ def show_case_vids(case_id):
     else:
         flash("You don't have permission to view that case")
         return redirect('/cases')
+
 
 @app.route('/register-case', methods=["GET", "POST"])
 @login_required
@@ -137,7 +146,7 @@ def register_case():
         other_users = other_users.replace(" ", "")
         # split on the comma
         user_emails = other_users.split(",")
-        
+
         # append the existing user to the list of approved users
         user_emails.append(current_user.email)
 
@@ -161,10 +170,10 @@ def create_case(case_name, owner_id):
     """Creates a new case in the database"""
 
     session = db_session()
-    
+
     # check if that case name already exists
     case_check = session.query(Case).filter(Case.case_name == case_name).first()
-    
+
     if case_check is None:
         #instantiate a new case in the db
         new_case = Case(case_name=case_name, owner_id=owner_id)
@@ -181,13 +190,38 @@ def create_case(case_name, owner_id):
         #return the case object
         return Case.query.get(case_id)
 
+
+@app.route('/case-settings/<case_id>')
+def show_case_settings(case_id):
+    """Shows user settings for chosen case"""
+
+    # check if the user has permission to view this case
+    user_permitted = validate_usercase(case_id, g.current_user.user_id)
+
+    if user_permitted:
+        # get all users associated with this case id
+        users = db.session.query(User.fname, User.lname, User.email, User.user_id).join(
+                                UserCase).filter(UserCase.case_id == case_id).all()
+
+        # get the tags for this case and the default tags
+        tags = get_tags(case_id)
+
+        return render_template('case-settings.html', users=users, case_id=case_id, tags=tags)
+    else:
+        flash("You don't have permission to view that case")
+        return redirect('/cases')
+
+
+# USER/USER CASES ---------------------------------------------------------------
+
+
 def check_user(email):
     """Checks for user in database and adds if new"""
 
     session = db_session()
     #check if a user with that email exists already
     #gets the user object for that email address
-    user_check = session.query(User).filter(User.email==email).first()
+    user_check = session.query(User).filter(User.email == email).first()
 
     # if user already exists associate the user with the new case
     if user_check is None:
@@ -205,11 +239,16 @@ def check_user(email):
 
 
 def validate_usercase(case_id, user_id):
+    """Validate is user is permitted access to a specifc case"""
+
+    # open session
     session = db_session()
+
     # check if the usercase exists already
-    case_user_check = session.query(UserCase).filter(UserCase.case_id == case_id, 
+    case_user_check = session.query(UserCase).filter(UserCase.case_id == case_id,
                                                      UserCase.user_id == user_id).first()
 
+    # close session
     db_session.remove()
     return case_user_check
 
@@ -217,59 +256,25 @@ def validate_usercase(case_id, user_id):
 def update_usercase(case_id, user_id):
     """Checks for user in database and adds if new - returns new usercase obj"""
 
+    # open
     session = db_session()
+
     # check if the usercase exists already
     case_user_check = validate_usercase(case_id, user_id)
-    
+
     # if the relationship doesn't exist - create it
     if case_user_check is None:
         #create an association in the usercases table
         user_case = UserCase(case_id=case_id, user_id=user_id)
-        print "\n\n\n\n\n\n", user_case, "\n\n\n\n\n\n"
         session.add(user_case)
         session.commit()
 
+    # close session
     db_session.remove()
+
     # return case_user_check so we can determine if the association is new or not
     # if case_user_check is None - we can use that in the add-users route
     return case_user_check
-
-
-@app.route('/case-settings/<case_id>')
-def show_case_settings(case_id):
-    """Shows user settings for chosen case"""
-
-    # check if the user has permission to view this case
-    user_permitted = validate_usercase(case_id, g.current_user.user_id)
-
-    if user_permitted:
-        # get all users associated with this case id
-        users = db.session.query(User.fname, User.lname, User.email, User.user_id).join(
-                                 UserCase).filter(UserCase.case_id == case_id).all()
-
-        # get the tags for this case and the default tags
-        tags = get_tags(case_id)
-        print "\n\n\n\n\n\n", tags
-        return render_template('case-settings.html', users=users, case_id=case_id, tags=tags)
-    else:
-        flash("You don't have permission to view that case")
-        return redirect('/cases')
-
-
-def get_tags(case_id):
-    """Returns the tags associated with a case and the default tags"""
-
-    session = db_session()
-    # db_session is a scoped session
-    # query the db for the DEFAULT case
-    default_case = session.query(Case).filter(Case.case_name == "DEFAULT").first()
-    # find all the tags for this provided case as well as default tags
-    tags = session.query(Tag).filter((Tag.case_id == case_id) | 
-                                     (Tag.case_id == default_case.case_id)).all()
-
-    db_session.remove()
-    # return a list of tags
-    return tags
 
 
 @app.route('/add-usercase', methods=["POST"])
@@ -293,7 +298,7 @@ def add_users_to_case():
         # get the user obj for the email
         # a new user be created if the user is not registered yet
         user_check = get_user_by_email(email)
-        
+
         # Create usercase assocation
         # update_usercase returns None if the usercase is new
         case_user_check = update_usercase(case_id, user_check.user_id)
@@ -306,6 +311,7 @@ def add_users_to_case():
     update_users = update_users + "</tr>"
 
     return update_users
+
 
 @app.route('/remove-usercase', methods=["POST"])
 def remove_user_from_case():
@@ -347,6 +353,120 @@ def get_user_by_email(email):
     return user_check
 
 
+# USER REGISTRATION/LOGIN ------------------------------------------------------
+
+
+@app.route('/login', methods=["POST"])
+def handle_login():
+    """Check is user is registered"""
+
+    # get email and password info
+    email = request.form.get("email")
+    password = request.form.get("password")
+
+    #check if user is in db
+    user_check = User.query.filter_by(email=email).first()
+
+    # if user already exists check the password
+    if user_check:
+        if user_check.password == password:
+            #set flash message telling them login successful
+            flash("You have successfully logged in")
+            #add user's ID num to the session
+            session['user_id'] = user_check.user_id
+            #send them to their own page
+            return redirect('/cases')
+        else:
+            # tell them the password doesn't match
+            flash("That password does not match our records.")
+            # redirect back to login so they can try again
+            return redirect("/")
+    else:
+        flash("No user is registered with that email. Please register.")
+        return redirect('/register')
+
+
+@app.route('/logout')
+def logout_user():
+    """Logs a user out"""
+
+    # clear email from the session
+    session.clear()
+
+    # tell the user they are logged out
+    flash("You have successfully logged out")
+
+    return redirect('/')
+
+
+@app.route('/register', methods=["GET"])
+def show_reg_form():
+    """Shows new user a registration form"""
+
+    return render_template('registration.html')
+
+@app.route('/register', methods=['POST'])
+def register_user():
+    """Checks db for user and adds user if new"""
+
+    fname = request.form.get('fname')
+    lname = request.form.get('lname')
+    email = request.form.get("email")
+    password = request.form.get("password")
+
+    #check if user exists in db
+    user_check = User.query.filter_by(email=email).first()
+    
+    # if the user has a password - they are already registered
+    if user_check:
+        if user_check.password != None:
+            #let us know user exists already and redirect to homepage to login
+            flash('You have already registered. Please log in.')
+        else:
+            user_check.password = password
+            user_check.fname = fname
+            user_check.lname = lname
+
+            db.session.commit()
+            flash('You have successfully registered.')
+            session['user_id'] = user_check.user_id
+    else:
+        #create user
+        user = User(email=email,
+                    password=password,
+                    fname=fname,
+                    lname=lname)
+        # prime user to be added to db
+        db.session.add(user)
+        # commit user to db
+        db.session.commit()
+        flash('You have successfully registered.')
+        # add user's ID num to the session
+        session['user_id'] = user.user_id
+    
+    # send them to their own page
+    return redirect('/cases')
+
+
+# TAGS/CLIPTAGS ----------------------------------------------------------------
+
+
+def get_tags(case_id):
+    """Returns the tags associated with a case and the default tags"""
+
+    session = db_session()
+    # db_session is a scoped session
+    # query the db for the DEFAULT case
+    default_case = session.query(Case).filter(Case.case_name == "DEFAULT").first()
+    # find all the tags for this provided case as well as default tags
+    tags = session.query(Tag).filter((Tag.case_id == case_id) |
+                                     (Tag.case_id == default_case.case_id)).all()
+
+    db_session.remove()
+    # return a list of tags
+    return tags
+
+
 @app.route('/add-tags', methods=["POST"])
 def add_tags_to_case():
     """Adds a tag to a specific case"""
@@ -376,12 +496,13 @@ def add_tags_to_case():
 
     return "Tags were added successfully"
 
+
 @app.route('/delete-tag', methods=['POST'])
 def remove_tag_and_assoc():
     """Removes a tag from a case and removes associations from clips"""
 
     # get data
-    case_id = request.form.get('case_id')
+    # case_id = request.form.get('case_id')
     tag_id = request.form.get('del_tag')
 
     tag = Tag.query.get(tag_id)
@@ -391,8 +512,8 @@ def remove_tag_and_assoc():
 
     # delete the cliptag association for each clip so we can delete the tag itself
     for clip in tagged_clips:
-        print "\n\n\n\n\n\n\n\n\n", clip
-        cliptag = ClipTag.query.filter(ClipTag.clip_id == clip.clip_id, 
+        # get the cliptag object to be deleted
+        cliptag = ClipTag.query.filter(ClipTag.clip_id == clip.clip_id,
                                        ClipTag.tag_id == tag.tag_id).first()
         db.session.delete(cliptag)
         db.session.commit()
@@ -401,7 +522,7 @@ def remove_tag_and_assoc():
     db.session.delete(tag)
     db.session.commit()
 
-    return "Usercase removed"
+    return "tag removed"
 
 
 @app.route('/add-cliptags', methods=["POST"])
@@ -425,7 +546,9 @@ def add_cliptags():
         #return the tag to be added to the html
         return tag.tag_name
 
-# VIDEOS -----------------------------------------------------------------------
+
+# VIDEO ------------------------------------------------------------------------
+
 
 @app.route('/upload-video', methods=["GET"])
 @login_required
@@ -453,7 +576,7 @@ def upload_video():
 
     # add the video to the db
     date_added = datetime.now()
-    new_vid = Video(case_id=case_id, vid_name=video_name, added_by=user_id, 
+    new_vid = Video(case_id=case_id, vid_name=video_name, added_by=user_id,
                     added_at=date_added, deponent=deponent, recorded_at=recorded_at)
     db.session.add(new_vid)
     db.session.commit()
@@ -499,7 +622,6 @@ def update_vid_status(vid_name):
 @login_required
 def show_video(vid_id):
     """Streams the selected video"""
-    
 
     #get the video object
     vid_to_trim = Video.query.get(vid_id)
@@ -526,12 +648,46 @@ def show_video(vid_id):
         flash("You don't have permission to view that case")
         return redirect('/cases')
 
-# MAKING CLIPS -----------------------------------------------------------------
+
+@app.route('/handle-videos', methods=['POST'])
+@login_required
+def handle_videos():
+    """handle the selected full videos and perform action based on btn clicked"""
+
+    # get the list of requested clips
+    selected_vids = request.form.get('clips')
+
+    # get a list of the clip objects from the db [(clip_name, clip_id)]
+    selected_vids = selected_vids.strip()
+    selected_vids = selected_vids.split(",")
+
+    print "\n\n\n\n\n\n", selected_vids, "\n\n\n\n\n\n"
+
+    req_vids = Video.query.filter(Video.vid_id.in_(selected_vids)).all()
+
+    case_id = req_vids[0].case.case_id
+    case_name = req_vids[0].case.case_name
+    case_name = case_name.replace(" ", "_")
+    case_name = case_name.replace(".", "_")
+
+    func_to_perform = request.form.get('call_func')
+
+    if func_to_perform == 'downloadClips':
+        download_all_files(req_vids, case_name, g.current_user)
+    elif func_to_perform == 'deleteClips':
+        delete_all_files(req_vids, "vids")
+
+    return redirect('/cases/{}'.format(case_id))
+
+
+# CLIPS ------------------------------------------------------------------------
+
+
 @app.route('/trim-video/<vid_id>')
 @login_required
 def trim_video(vid_id):
     """Load form to get user clip requests"""
-    
+
     vid_to_trim = Video.query.get(vid_id)
     vid_name = vid_to_trim.vid_name
     case_id = vid_to_trim.case.case_id
@@ -559,7 +715,7 @@ def trim_video(vid_id):
 @app.route('/make-clips', methods=["POST"])
 def get_clip_source():
     """Gets the video to be clipped from aws - passes to make-clips function"""
-    
+
     # get video obj from db
     # TO DO make sure the vid exists
     vid_id = request.form.get('vid_id')
@@ -630,6 +786,7 @@ def get_clip_source():
         flash("You don't have permission to view that case")
         return redirect('/cases')
 
+
 def download_from_aws(save_loc, clips, vid_id, user_id, vid_name):
     """Downloads file from aws"""
 
@@ -643,6 +800,7 @@ def download_from_aws(save_loc, clips, vid_id, user_id, vid_name):
             #wait for it to download
     #once the file is available, make clips
     make_clips(save_loc, clips, vid_id, user_id)
+
 
 def make_clips(file_loc, clips, vid_id, user_id):
     """Makes the designated clips once the file is downloaded"""
@@ -670,15 +828,13 @@ def make_clips(file_loc, clips, vid_id, user_id):
         end_time = clip[1].replace(":", "_")
         # stitch together base name with times in file name
         clip_name = clip_name_base + "-" + start_time + "-" + end_time + file_ext
-        #get just the filename for the aws key
-        key_name = clip_name[clip_name.rfind('/')+1:]
         # add to the list of files to upload
         clips_to_upload.append(clip_name)
         # create the new subclip
         new_clip = my_clip.subclip(t_start=clip[0], t_end=clip[1])
         # save the clip to our temp file location
         new_clip.write_videofile(clip_name, codec="libx264")
-        
+
     #establish session with aws
     s3session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
     s3 = s3session.resource('s3')
@@ -714,7 +870,6 @@ def show_all_clips(vid_id):
     """loads page with a list of all clips for that vid id"""
 
     #get a list of all the clips associated with that video id
-    # TO DO join query to get user name who created clip
     main_vid = Video.query.get(vid_id)
     case_id = main_vid.case.case_id
 
@@ -725,7 +880,7 @@ def show_all_clips(vid_id):
 
         # get the tags for this case and the default tags
         tags = get_tags(main_vid.case_id)
-        
+
         return render_template('vid-clips.html', main_vid=main_vid, clips=clips, tags=tags)
     else:
         flash("You don't have permission to view that case")
@@ -737,6 +892,7 @@ def show_all_clips(vid_id):
 def show_clip(clip_id):
     """Plays the clip in a separate window"""
 
+    # get the clip object 
     clip_to_show = Clip.query.get(clip_id)
     clip_name = clip_to_show.clip_name
 
@@ -776,92 +932,94 @@ def handle_clips():
 
     #get the full video name
     vid_name = Video.query.get(vid_id).vid_name[:-4]
-    
+
     # get a list of the clip objects from the db [(clip_name, clip_id)]
     selected_clips = selected_clips.strip()
     selected_clips = selected_clips.split(",")
     req_clips = db.session.query(Clip.clip_name, Clip.clip_id).join(Video).filter(
                                 (Clip.clip_id.in_(selected_clips)) &
-                                (Video.vid_id == vid_id)).all();
-    
+                                (Video.vid_id == vid_id)).all()
+
     func_to_perform = request.form.get('call_func')
 
     if func_to_perform == 'downloadClips':
-        download_all_clips(req_clips, vid_name, g.current_user)
+        download_all_files(req_clips, vid_name, g.current_user)
     elif func_to_perform == 'deleteClips':
-        delete_selected_clips(req_clips, "clips")
+        delete_all_files(req_clips, "clips")
     elif func_to_perform == 'stitchClips':
-        download_all_clips(req_clips, vid_name, g.current_user, True)
+        download_all_files(req_clips, vid_name, g.current_user, True)
 
     return redirect('/clips/{}'.format(vid_id))
 
 
-@app.route('/handle-videos', methods=['POST'])
-@login_required
-def handle_videos():
-    """handle the selected full videos and perform action based on btn clicked"""
+# CLIP AND VIDEO DOWNLOADING/DELETING FUNCTIONS --------------------------------
 
-    # get the list of requested clips
-    selected_vids = request.form.get('clips')
-    
-    # get a list of the clip objects from the db [(clip_name, clip_id)]
-    selected_vids = selected_vids.strip()
-    selected_vids = selected_vids.split(",")
 
-    print "\n\n\n\n\n\n", selected_vids, "\n\n\n\n\n\n"
-    
-    req_vids = Video.query.filter(Video.vid_id.in_(selected_vids)).all()
-
-    case_id = req_vids[0].case.case_id
-    case_name = req_vids[0].case.case_name
-    case_name = case_name.replace(" ", "_")
-    case_name = case_name.replace(".", "_")
-
-    func_to_perform = request.form.get('call_func')
-
-    if func_to_perform == 'downloadClips':
-        download_all_clips(req_vids, case_name, g.current_user)
-    elif func_to_perform == 'deleteClips':
-        delete_selected_clips(req_vids, "vids")
-
-    return redirect('/cases/{}'.format(case_id))
-
-def download_all_clips(clips, vid_name, user, stitch=False):
+def download_all_files(clips, vid_name, user, stitch=False):
     """Download selected clips and save as a zip"""
-    
-    print "\n\n\n\n\n", clips, "\n\n\n\n\n"
+
+    # get data
     user_email = user.email
     user_id = user.user_id
-    clip_urls = []
-    date_zipped = datetime.now()
-    date_str = date_zipped.strftime("%m%d%y_%I-%M%P")
-    print "\n\n\n\n\n\n\n", date_str, "\n\n\n\n\n\n\n"
+
+    # get date of zip
+    date_zipped = arrow.now('US/Pacific').format('MM-DD-YYYY_hh-mm_A')
+
+    # if we are stitching clips together make a list to hold them
     if stitch is True:
         stitch_clips = []
-    zip_url = "{}/zips/{}.zip".format(user_id, vid_name)
+
+    # get a url to use in the email without the static prefix
+    zip_url = "zips/{}/{}_{}.zip".format(user_id, vid_name, date_zipped)
+
+    # make sure a folder exists for where we will save the zip
+    zip_dest = "static/zips/{}/".format(user_id)
+    # if it doesn't exist, make the folder
+    if not os.path.exists(zip_dest):
+        os.makedirs(zip_dest)
+
+    # make zip with either all individual clips or one stitched clip
     with zipfile.ZipFile("static/"+zip_url, 'w') as clipzip:
         for clip in clips:
+            # our query returns a tuple (clip_name, clip_id)
             file_name = clip[0]
+
+            # make a save location for the downloaded clips in the temp folder
             save_loc = 'static/temp/'+file_name
-            clip_urls.append(save_loc)
+
+            # connect to aws
             s3 = boto3.resource('s3')
-            # s3.Object(BUCKET_NAME, file_name).download_file(save_loc)
             s3.meta.client.download_file(BUCKET_NAME, file_name, save_loc)
+
+            # if we aren't stitching add the individual file to the zip
             if stitch is False:
                 clipzip.write(save_loc, vid_name+"/"+file_name)
             else:
+                # otherwise add the videofiles to a clip list
                 clip_vf = VideoFileClip(save_loc)
                 stitch_clips.append(clip_vf)
+
+        # if we are stitching create composite clip
         if stitch is True:
-            print "\n\n\n\n\n\n stitching \n\n\n\n\n\n"
+            # concat videos
             stitched_clip = concatenate_videoclips(stitch_clips)
-            stitched_url = 'static/temp/'+vid_name+'compilation.mp4'
+
+            # make full path with filename
+            stitched_url = 'static/temp/'+vid_name+'_compilation.mp4'
+
+            # save the stitched video
             stitched_clip.write_videofile(stitched_url)
-            clipzip.write(stitched_url, vid_name+"/"+vid_name+'compilation.mp4')
+
+            # add the stitched video to the zip
+            clipzip.write(stitched_url, vid_name+"/"+vid_name+'_compilation.mp4')
+
+    # get the url for the email
     email_url = url_for('static', filename=zip_url)
+
+    # send email to user that their zip is ready
     send_email(user_email, email_url)
 
-def delete_selected_clips(clips, vid_type):
+def delete_all_files(clips, vid_type):
     """Delete selected clips from aws and db"""
 
     # blank list to hold all files to delete for aws
@@ -889,8 +1047,11 @@ def delete_selected_clips(clips, vid_type):
                 # delete the cliptags so we can delete the clip itself
                 scoped_session.delete(cliptag)
                 scoped_session.commit()
+            
             # add the clip name to a list of clips to be deleted from aws
             delete_aws.append({'Key': clip[0]})
+        
+        # we have to delete clip tags, clip, and then the video if it's a video
         if vid_type == "vids":
             file_to_del = scoped_session.query(Video).get(clip.vid_id)
 
@@ -900,6 +1061,7 @@ def delete_selected_clips(clips, vid_type):
             for clip in clips:
                 # get and delete any cliptag associations for that clip
                 tags = clip.tags
+                
                 for tag in tags:
                     # find the cliptag association
                     cliptag = scoped_session.query(ClipTag).filter(ClipTag.tag_id == tag.tag_id, 
@@ -922,115 +1084,17 @@ def delete_selected_clips(clips, vid_type):
         # delete the originally selected file
         scoped_session.delete(file_to_del)
         scoped_session.commit()
-    
+
     # close session
     db_session.remove()
-            
+
+    # delete the files from aws
     response = bucket.delete_objects(Delete={'Objects': delete_aws})
 
 
+# EMAIL NOTIFICATIONS ----------------------------------------------------------
 
-def remove_file(file_path):
-    """removes file from temp folder once uploaded"""
-
-    os.remove(file_path)
-
-# USER REGISTRATION/LOGIN-------------------------------------------------------
-
-
-@app.route('/login', methods=["POST"])
-def handle_login():
-    """Check is user is registered"""
-
-    # get email and password info
-    email = request.form.get("email")
-    password = request.form.get("password")
-
-    #check if user is in db
-    user_check = User.query.filter_by(email=email).first()
-
-    # if user already exists check the password
-    if user_check:
-        if user_check.password == password:
-            #set flash message telling them login successful
-            flash("You have successfully logged in")
-            #add user's ID num to the session
-            session['user_id'] = user_check.user_id
-            #send them to their own page
-            return redirect('/cases')
-        else:
-            # tell them the password doesn't match
-            flash("That password does not match our records.")
-            # redirect back to login so they can try again
-            return redirect("/")
-    else:
-        flash("No user is registered with that email. Please register.")
-        return redirect('/register')
-
-
-@app.route('/logout')
-def logout_user():
-    """Logs a user out"""
-
-    # clear email from the session
-    session.clear()
-
-    # tell the user they are logged out
-    flash("You have successfully logged out")
-
-    return redirect('/')
-
-
-@app.route('/register', methods=["GET"])
-def show_reg_form():
-    """Shows new user a registration form"""
-
-    return render_template('registration.html')
-
-@app.route('/register', methods=['POST'])
-def register_user():
-    """Checks db for user and adds user if new"""
-
-    fname = request.form.get('fname')
-    lname = request.form.get('lname')
-    email = request.form.get("email")
-    password = request.form.get("password")
-
-    #check if user exists in db
-    user_check = User.query.filter_by(email=email).first()
-    if user_check:
-        if user_check.password != None:
-            #let us know user exists already and redirect to homepage to login
-            flash('You have already registered. Please log in.')
-        else:
-            user_check.password = password
-            user_check.fname = fname
-            user_check.lname = lname
-
-            db.session.commit()
-            flash('You have successfully registered.')
-            session['user_id'] = user_check.user_id
-
-    else:
-        #create user
-        user = User(email=email,
-                    password=password,
-                    fname=fname,
-                    lname=lname)
-        #prime user to be added to db
-        db.session.add(user)
-        #commit user to db
-        db.session.commit()
-        flash('You have successfully registered.')
-        #add user's ID num to the session
-        session['user_id'] = user.user_id
-    #send them to their own page
-    return redirect('/cases')
-    # return redirect("/")
-
-
-# EMAILING USER UPDATES --------------------------------------------------------
-
+# get email info
 gmail_user = os.environ['GMAIL_USER']
 gmail_password = os.environ['GMAIL_PASS']
 
@@ -1046,28 +1110,29 @@ def create_message(sender, to, subject, message_text):
     Returns:
     An object containing a base64url encoded email object.
     """
-    print "\n\n\n\n", sender, to, subject, message_text, "\n\n\n\n\n"
 
+    # creates a message to be sent
     message = MIMEText(message_text, 'html')
     message['to'] = to
     message['from'] = sender
     message['subject'] = subject
-    print "\n\n\n\n\n", message, "\n\n\n\n\n"
+    
     return message.as_string()
-    # return {'raw': base64.urlsafe_b64encode(message.as_string())}
 
 
 def send_email(recipient, file_url):
     """Sends user a notification email"""
 
+    # set up email content
     sent_from = gmail_user
     to = recipient
     subject = 'Update from Cut To The Point'
     body = 'Hey, Your video is ready! Here is a link <a href=http://localhost:5000{}>to download</a>'.format(file_url)
 
-    print "\n\n\n\n", sent_from, to, subject, body, "\n\n\n\n\n"
+    # create a message
     email_text = create_message(sent_from, to, subject, body)
 
+    # try sending it
     try:
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
         server.ehlo()
@@ -1078,6 +1143,9 @@ def send_email(recipient, file_url):
         print 'Email sent!'
     except:
         print 'Something went wrong...'
+
+
+# STARTUP FUNCTIONS ------------------------------------------------------------
 
 if __name__ == "__main__":
     # We have to set debug=True here, since it has to be True at the
