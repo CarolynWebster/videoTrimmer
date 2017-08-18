@@ -156,9 +156,9 @@ def register_case():
 
         # cycle through the provided emails
         for email in user_emails:
-            # check_user gets the user object for that email address
-            # or registers a new user if the email doesn't exist
-            user = check_user(email)
+            # get_user_by_email gets the user object for that email address
+            # or registers a new user if the email doesn't exist already
+            user = get_user_by_email(email)
 
             #create an association in the usercases table
             update_usercase(case_id=case.case_id, user_id=user.user_id)
@@ -213,29 +213,6 @@ def show_case_settings(case_id):
 
 
 # USER/USER CASES ---------------------------------------------------------------
-
-
-def check_user(email):
-    """Checks for user in database and adds if new"""
-
-    session = db_session()
-    #check if a user with that email exists already
-    #gets the user object for that email address
-    user_check = session.query(User).filter(User.email == email).first()
-
-    # if user already exists associate the user with the new case
-    if user_check is None:
-        # if the user is not registered - add them to the database
-        # they can add their password and name when they officially register
-        # make all emails lowercase to reduce doubled entries
-        user = User(email=email.lower())
-        #prime user to be added to db
-        session.add(user)
-        #commit user to db
-        session.commit()
-        user_check = session.query(User).get(user.user_id)
-
-    return user_check
 
 
 def validate_usercase(case_id, user_id):
@@ -342,7 +319,8 @@ def get_user_by_email(email):
     if user_check is None:
         #if the user is not registered - add them to the database
         #they can add their password and name when they officially register
-        user_check = User(email=email)
+        # make all emails lowercase to reduce doubled entries
+        user_check = User(email=email.lower())
         #prime user to be added to db
         session.add(user_check)
         #commit user to db
@@ -416,10 +394,10 @@ def register_user():
 
     #check if user exists in db
     user_check = User.query.filter_by(email=email).first()
-    
+
     # if the user has a password - they are already registered
     if user_check:
-        if user_check.password != None:
+        if user_check.password is not None:
             #let us know user exists already and redirect to homepage to login
             flash('You have already registered. Please log in.')
         else:
