@@ -833,6 +833,9 @@ def download_all_clips(clips, vid_name, user, stitch=False):
     user_email = user.email
     user_id = user.user_id
     clip_urls = []
+    date_zipped = datetime.now()
+    date_str = date_zipped.strftime("%m%d%y_%I-%M%P")
+    print "\n\n\n\n\n\n\n", date_str, "\n\n\n\n\n\n\n"
     if stitch is True:
         stitch_clips = []
     zip_url = "{}/zips/{}.zip".format(user_id, vid_name)
@@ -1005,7 +1008,8 @@ def register_user():
             user_check.lname = lname
 
             db.session.commit()
-            flash('You have successfully registered. Please log in.')
+            flash('You have successfully registered.')
+            session['user_id'] = user_check.user_id
 
     else:
         #create user
@@ -1017,8 +1021,12 @@ def register_user():
         db.session.add(user)
         #commit user to db
         db.session.commit()
-        flash('You have successfully registered. Please log in.')
-    return redirect("/")
+        flash('You have successfully registered.')
+        #add user's ID num to the session
+        session['user_id'] = user.user_id
+    #send them to their own page
+    return redirect('/cases')
+    # return redirect("/")
 
 
 # EMAILING USER UPDATES --------------------------------------------------------
