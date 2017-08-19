@@ -10,15 +10,20 @@
     </tr>
     {% for user in users %}
     <tr id="User_{{ user.user_id }}">
-        <td><button type="button" id={{ user.user_id }} class="close remove-user-x" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-        </button></td>
+        {% if user.user_id == owner.user_id %}
+            <td><span class='glyphicon glyphicon-star'></span></td>
+        {% else %}
+            <td><button type="button" id={{ user.user_id }} class="close remove-user-x" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button></td>
+        {% endif %}
         <!--case name-->
         <td>{{ user.fname }} {{ user.lname }}</td>
         <td>{{ user.email }}</td>
     </tr>
     {% endfor %}
 </table>
+<p><br/><span class='glyphicon glyphicon-star'></span> denotes case owner</p>
 <textarea id="new_users_input" placeholder="JaneD@email.com, JohnD@email.com"></textarea>
 <button id='add_users'>Add new users</button>
 

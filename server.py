@@ -198,6 +198,9 @@ def show_case_settings(case_id):
     # check if the user has permission to view this case
     user_permitted = validate_usercase(case_id, g.current_user.user_id)
 
+    owner_id = Case.query.get(case_id).owner_id
+    owner = User.query.get(owner_id)
+
     if user_permitted:
         # get all users associated with this case id
         users = db.session.query(User.fname, User.lname, User.email, User.user_id).join(
@@ -206,7 +209,7 @@ def show_case_settings(case_id):
         # get the tags for this case and the default tags
         tags = get_tags(case_id)
 
-        return render_template('case-settings.html', users=users, case_id=case_id, tags=tags)
+        return render_template('case-settings.html', users=users, case_id=case_id, tags=tags, owner=owner)
     else:
         flash("You don't have permission to view that case")
         return redirect('/cases')
