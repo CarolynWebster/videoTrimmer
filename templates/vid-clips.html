@@ -47,6 +47,7 @@
 <button type="button" id='stitchClips' value="Stitch">Combine and Download Clips</button>
 <button type="button" id='downloadClips' value="Download">Download Clips</button>
 <button type="button" id='deleteClips' value="Delete">Delete Clips</button>
+<button type="button" id='createDeck' value="Deck">Create slide deck</button>
     
 <script>
 function collect_checked_vids(evt){
@@ -98,6 +99,13 @@ function collect_checked_vids(evt){
                 location.reload();
             });
     }
+    else if (evt.currentTarget.id == 'createDeck') {
+      console.log('make deck')
+      $.post('/handle-clips', formInputs, 
+            function() {
+                console.log('request complete')
+            });
+    }
 }
 
 function toggleChecks(evt) {
@@ -118,6 +126,7 @@ function toggleChecks(evt) {
 $('#stitchClips').on('click', collect_checked_vids)
 $('#downloadClips').on('click', collect_checked_vids)
 $('#deleteClips').on('click', collect_checked_vids)
+$('#createDeck').on('click', collect_checked_vids)
 $('#select-all').on('change', toggleChecks)
 
 

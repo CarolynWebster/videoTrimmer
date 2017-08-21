@@ -32,6 +32,8 @@ import arrow
 
 from email.mime.text import MIMEText
 
+from ppt import create_slide_deck, txt_source
+
 app = Flask(__name__)
 
 AWS_ACCESS_KEY = os.environ['AWS_ACCESS_KEY']
@@ -929,11 +931,41 @@ def handle_clips():
         delete_all_files(req_clips, "clips")
     elif func_to_perform == 'stitchClips':
         download_all_files(req_clips, vid_name, g.current_user, True)
+    elif func_to_perform == 'createDeck':
+        make_clip_ppt(req_clips, vid_name, g.current_user)
 
     return redirect('/clips/{}'.format(vid_id))
 
 
 # CLIP AND VIDEO DOWNLOADING/DELETING FUNCTIONS --------------------------------
+
+DEFAULT_TEMP = 'static/ppt_temps/Gray_temp.pptx'
+
+def make_clip_ppt(clips, vid_name, user):
+    """Create a ppt using the clips"""
+
+    # connect to aws
+    s3 = boto3.resource('s3')
+
+    # make a list to hold all the clip paths
+    clips_for_ppt = []
+
+    for clip in clips:
+        # our query returns a tuple (clip_name, clip_id)
+        file_name = clip[0]
+
+        # make a save location for the downloaded clips in the temp folder
+        save_loc = 'static/temp/'+file_name
+
+        # download file
+        s3.meta.client.download_file(BUCKET_NAME, file_name, save_loc)
+        
+        # add file path to the list
+        clips_for_ppt.append(save_loc)
+
+    create_slide_deck(DEFAULT_TEMP, clips_for_ppt, txt_source)
+
+
 
 
 def download_all_files(clips, vid_name, user, stitch=False):
