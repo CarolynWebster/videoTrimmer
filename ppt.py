@@ -3,7 +3,7 @@ from pptx.util import Inches, Pt
 
 import re
 
-from model import db, connect_to_db, User, Video, Case, UserCase, Clip, Tag, ClipTag, db_session, Transcript, TextPull
+from model import db, connect_to_db, Clip, TextPull, db_session
 
 from moviepy.editor import *
 
@@ -48,11 +48,31 @@ def create_slide_deck(template, clips):
         # get the matching textpull for that clip
         db_text = scoped_session.query(TextPull).filter(TextPull.clip_id == db_clip.clip_id).first()
 
+        # we have to split the lines up into pieces so we can insert them properly
+        # if it is a solid string - we lose our hard returns
+        split_text = db_text.pull_text.split("\n")
+
         # target the text frame on the slide
         txt = slide.placeholders[1]
 
         if txt.has_text_frame:
-            txt.text_frame.text = db_text.pull_text
+            # find the text frame in the placeholder
+            text_frame = txt.text_frame
+            # id the paragraphics
+            p = text_frame.paragraphs[0]
+            # entries starting with a Q. or A. have a blank space at the start
+            # so if the 0th "line" is nothing - start at line 1
+            start_line = 0
+            if split_text[0] != "":
+                p.text = split_text[0]
+            else:
+                p.text = split_text[1]
+                start_line = 1
+
+            # load the text in line by line as paragraphs
+            for para in split_text[start_line+1:]:
+                p = text_frame.add_paragraph()
+                p.text = para
 
     # close scoped session
     db_session.remove()

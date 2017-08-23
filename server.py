@@ -997,8 +997,9 @@ def make_clip_ppt(clips, vid_name, user):
         # make a save location for the downloaded clips in the temp folder
         save_loc = 'static/temp/'+file_name
 
-        # download file
-        s3.meta.client.download_file(BUCKET_NAME, file_name, save_loc)
+        if not os.path.exists(save_loc):
+            # download file
+            s3.meta.client.download_file(BUCKET_NAME, file_name, save_loc)
         
         # add file path to the list
         clips_for_ppt.append(save_loc)
