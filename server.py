@@ -14,7 +14,7 @@ from functools import wraps
 
 from flask_debugtoolbar import DebugToolbarExtension
 
-from model import db, connect_to_db, User, Video, Case, UserCase, Clip, Tag, ClipTag, db_session
+from model import db, connect_to_db, User, Video, Case, UserCase, Clip, Tag, ClipTag, db_session, Transcript, TextPull
 
 from datetime import datetime
 
@@ -32,7 +32,7 @@ import arrow
 
 from email.mime.text import MIMEText
 
-from ppt import create_slide_deck, txt_source
+from ppt import create_slide_deck, find_text_by_page_line
 
 app = Flask(__name__)
 
@@ -716,6 +716,9 @@ def get_clip_source():
         clip_list = request.form.get('clip-list')
         clips = clip_list.split(", ")
 
+        # get if the user is using timecodes or page-line nums
+        trim_method = request.form.get('trim_method')
+
         # make pathname for location to save temp video
         save_loc = 'static/temp/'+vid_name
 
@@ -723,13 +726,15 @@ def get_clip_source():
         clip_name_base = save_loc[0:-4]
 
         # save the ext separately
-        file_ext = save_loc[-4:]
+        # file_ext = save_loc[-4:]
+        file_ext = ".mov"
 
-        # make a list to hold any duplicate clip requests
-        repeat_clips = []
+        # make a list to hold the clip db objects
+        clips_to_process = []
 
         # add the clips to the db - they will show up as processing until they are complete
         for i in range(len(clips)):
+            clip_info = {}
             # split the start and end times
             clip = clips[i].split('-')
             # replace the : with _ since the : cause a filename issue
@@ -737,32 +742,24 @@ def get_clip_source():
             end_time = clip[1].replace(":", "_")
             # stitch together base name with times in file name
             clip_name = clip_name_base + "-" + start_time + "-" + end_time + file_ext
-            #get just the filename for the aws key
+            # get just the filename for the aws key
             key_name = clip_name[clip_name.rfind('/')+1:]
 
             #check if the clip exists already
             clip_check = Clip.query.filter_by(clip_name=key_name).first()
             if clip_check is None:
                 # add the clip to our db
-                db_clip = Clip(vid_id=vid_id, start_at=clip[0], end_at=clip[1], created_by=user_id, clip_name=key_name)
+                if trim_method == "time":
+                    db_clip = Clip(vid_id=vid_id, start_at=clip[0], end_at=clip[1], created_by=user_id, clip_name=key_name)
+                elif trim_method == "page":
+                    db_clip = Clip(vid_id=vid_id, start_pl=clip[0], end_pl=clip[1], created_by=user_id, clip_name=key_name)
                 db.session.add(db_clip)
                 db.session.commit()
-            elif clip_check.clip_status != 'Ready':
-                # there might have been a processing error - so let the clips be remade
-                pass
-            else:
-                # if we already have the clip note it so we can remove it
-                # before sending clips to be made
-                repeat_clips.append(i)
 
-        # sort so the highest indexes are first to avoid index error
-        repeat_clips.sort(reverse=True)
-
-        for repeat in repeat_clips:
-            clips.pop(repeat)
+                clips_to_process.append(db_clip)
 
         # send the upload to a separate thread to upload while the user moves on
-        download = threading.Thread(target=download_from_aws, args=(save_loc, clips, vid_id, user_id, vid_name)).start()
+        download = threading.Thread(target=download_from_aws, args=(save_loc, clips_to_process, vid_id, user_id, vid_name)).start()
 
         return redirect('/clips/{}'.format(vid_id))
     else:
@@ -775,49 +772,93 @@ def download_from_aws(save_loc, clips, vid_id, user_id, vid_name):
 
     # if the video hasn't been downloaded already - download it
     if os.path.isfile(save_loc) is False:
-        print "\n\n\n\n\n\n\n\n", save_loc, "\n\n\n\n\n\n\n\n"
         client = boto3.client('s3')
         client.download_file(BUCKET_NAME, vid_name, save_loc)
         while os.path.isfile(save_loc) is False:
-            print 'downloading'
             #wait for it to download
+            pass
+
+    # gets the corresponding text for that clip if there is any
+    pulled_text = pull_text(clips, vid_id)
+
     #once the file is available, make clips
     make_clips(save_loc, clips, vid_id, user_id)
+
+
+def pull_text(clips, vid_id):
+    """Goes to video transcript and pulls relevant text"""
+
+    # hook up to db
+    scoped_session = db_session()
+
+    # list to hold all pull tuples
+    all_pulls = []
+
+    # get the transcript for the selected video
+    transcript = scoped_session.query(Transcript).filter(Transcript.vid_id == vid_id).first()
+
+    if transcript:
+        for clip in clips:
+            # if the clip object has a page line num
+            if clip.start_pl is not None:
+                # get the timecodes and text for the request page-line nums
+                pull = find_text_by_page_line(clip.start_pl, clip.end_pl, transcript.text)
+                
+                # a tuple is returned for pull (start_at, end_at, pulled_text)
+                start_at, end_at, pull_text = pull
+
+                # rebind to the db connected clip obj
+                clip = scoped_session.query(Clip).get(clip.clip_id)
+                clip.start_at = start_at
+                clip.end_at = end_at
+
+                print "pull clip", clip
+                # make a new pull obj for the db
+                new_pull = TextPull(clip_id=clip.clip_id, pull_text=pull_text)
+                scoped_session.add(new_pull)
+
+                # add new pull and update clip obj with timecodes from transcript
+                scoped_session.commit()
+                print pull_text
+    # close scoped session
+    db_session.remove()
 
 
 def make_clips(file_loc, clips, vid_id, user_id):
     """Makes the designated clips once the file is downloaded"""
 
-    print "\n\n\n\n\n\n\n\n CALLBACK \n\n\n\n\n\n\n\n\n"
+    print "\n\n\n\n\n\n\n\n MAKING CLIPS \n\n\n\n\n\n\n\n\n"
 
-    #make a videoFileClip object using temp location path from make-clips route
-    my_clip = VideoFileClip(file_loc)
+    # make a videoFileClip object using temp location path from make-clips route
+    # this is the main video we will make clips from
+    main_vid = VideoFileClip(file_loc)
 
     # trim path to remove the file ext
     clip_name_base = file_loc[0:-4]
 
     # save the ext separately
-    file_ext = file_loc[-4:]
+    # file_ext = file_loc[-4:]
+    file_ext = ".mov"
 
     # make a list to hold the new clips so we can upload at the end
     clips_to_upload = []
 
+    scoped_session = db_session()
+
     # loop through the clips list and make clips for all the time codes given
     for clip in clips:
-        # split the start and end times
-        clip = clip.split('-')
-        # replace the : with _ since the : cause a filename issue
-        start_time = clip[0].replace(":", "_")
-        end_time = clip[1].replace(":", "_")
-        # stitch together base name with times in file name
-        clip_name = clip_name_base + "-" + start_time + "-" + end_time + file_ext
+        # rebind to the db connected clip obj
+        clip = scoped_session.query(Clip).get(clip.clip_id)
+        clip_name = clip.clip_name
         # add to the list of files to upload
         clips_to_upload.append(clip_name)
+        print "times", clip.start_at, clip.end_at
         # create the new subclip
-        new_clip = my_clip.subclip(t_start=clip[0], t_end=clip[1])
+        new_clip = main_vid.subclip(t_start=clip.start_at, t_end=clip.end_at)
         # save the clip to our temp file location
-        new_clip.write_videofile(clip_name, codec="libx264")
+        new_clip.write_videofile('static/temp/'+clip_name, codec="libx264")
 
+    db_session.remove()
     #establish session with aws
     s3session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
     s3 = s3session.resource('s3')
@@ -829,7 +870,6 @@ def make_clips(file_loc, clips, vid_id, user_id):
             video_file = clip_path
             video_name = clip_path.split('/')
             video_name = video_name[-1]
-            print "\n\n\n\n\n\n\n", video_file, video_name, "\n\n\n\n\n\n\n"
             s3.meta.client.upload_file(video_file, BUCKET_NAME, video_name, Callback=file_done(video_name))
         else:
             #if it wasn't done being written yet - add it back to the list
@@ -839,7 +879,7 @@ def make_clips(file_loc, clips, vid_id, user_id):
 def file_done(vid_name):
     """Updates the clip status once upload is complete"""
 
-    print "\n\n\n\n\n\n\n  STATUS UPDATE \n\n\n\n\n\n\n"
+    print "\n\n\n\n\n\n\n  FILE READY \n\n\n\n\n\n\n"
     scoped_session = db_session()
     clip = scoped_session.query(Clip).filter(Clip.clip_name == vid_name).first()
     clip.clip_status = 'Ready'
@@ -963,7 +1003,7 @@ def make_clip_ppt(clips, vid_name, user):
         # add file path to the list
         clips_for_ppt.append(save_loc)
 
-    create_slide_deck(DEFAULT_TEMP, clips_for_ppt, txt_source)
+    create_slide_deck(DEFAULT_TEMP, clips_for_ppt)
 
 
 

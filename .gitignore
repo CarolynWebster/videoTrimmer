@@ -5,7 +5,8 @@ quinny*
 .DS*
 vidtrimmer.sql
 *secret*
-static/temp/
+static/temp
+static/zips
 previous/
 *.zip
 *.sql

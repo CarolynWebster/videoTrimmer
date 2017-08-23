@@ -127,9 +127,10 @@ class Clip(db.Model):
     clip_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     vid_id = db.Column(db.Integer, db.ForeignKey('videos.vid_id'), nullable=False)
     clip_name = db.Column(db.String(100), nullable=False)
+    start_pl = db.Column(db.String(10))
+    end_pl = db.Column(db.String(10))
     start_at = db.Column(db.String(20))
     end_at = db.Column(db.String(20))
-    # clip_url = db.Column(db.String(100), nullable=False)
     created_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     clip_status = db.Column(db.String(10), default='Processing')
 
@@ -140,7 +141,7 @@ class Clip(db.Model):
         """useful clip info"""
 
         return "<Clip clip_id={} clip_name={}>".format(self.clip_id,
-                                                          self.clip_name)
+                                                       self.clip_name)
 
 
 class Tag(db.Model):
@@ -177,7 +178,40 @@ class ClipTag(db.Model):
         """useful cliptag info"""
 
         return "<ClipTag cliptag_id={} clip_id ={}>".format(self.cliptag_id,
-                                                                self.clip_id)
+                                                            self.clip_id)
+
+
+class Transcript(db.Model):
+    """Holds a full transcript associated with a video"""
+
+    __tablename__ = "transcripts"
+
+    t_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    vid_id = vid_id = db.Column(db.Integer, db.ForeignKey('videos.vid_id'), nullable=False)
+    text = db.Column(db.Text, nullable=False)
+
+    video = db.relationship("Video", backref="transcript")
+
+    def __repr__(self):
+        """useful transcript info"""
+
+        return "<Transcript t_id={} vid_id ={}>".format(self.t_id, self.vid_id)
+
+
+class TextPull(db.Model):
+
+    __tablename__ = "textpulls"
+
+    tp_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    clip_id = db.Column(db.Integer, db.ForeignKey('clips.clip_id'))
+    pull_text = db.Column(db.Text, nullable=False)
+
+    clip = db.relationship('Clip', backref="text_pulls")
+
+    def __repr__(self):
+        """useful textpull info"""
+
+        return "TextPull tp_id={} clip_name ={}>".format(self.tp_id, self.clip_id)
 
 ##############################################################################
 # Helper functions

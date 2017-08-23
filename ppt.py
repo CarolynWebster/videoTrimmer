@@ -3,6 +3,10 @@ from pptx.util import Inches, Pt
 
 import re
 
+from model import db, connect_to_db, User, Video, Case, UserCase, Clip, Tag, ClipTag, db_session, Transcript, TextPull
+
+from moviepy.editor import *
+
 # set horizontal and vertical position
 vid_VP = Inches(1.91)
 vid_HP = Inches(.41)
@@ -11,35 +15,50 @@ vid_HP = Inches(.41)
 vid_H = Pt(240)
 vid_W = Pt(320)
 
-def create_slide_deck(template, clips, txt_source):
+def create_slide_deck(template, clips):
+    """Creates a slide deck of selected clips"""
+
+    # create a new presentation
     prs = Presentation(template)
+
+    # start a scoped session
+    scoped_session = db_session()
 
     # make a new slide for each clip
     for clip in clips:
+        # pull out just the video name without the file path
+        clip_name = clip[clip.rfind('/')+1:]
+
+        # get a still from that video
+        vid_clip = VideoFileClip(clip)
+
+        # make a png of the first frame of the video to be the front
+        vid_front = clip[:-4]+".png"
+        vid_png = vid_clip.save_frame(vid_front)
+
         # select the depo slide layout
         slide = prs.slides.add_slide(prs.slide_layouts[7])
 
         # add a video to the slide using the provided dimensions
-        video = slide.shapes.add_movie(clip, vid_HP, vid_VP, vid_W, vid_H)
+        video = slide.shapes.add_movie(clip, vid_HP, vid_VP, vid_W, vid_H, vid_front)
 
-        print video.name, video.height
+        # get the clip from the db
+        db_clip = scoped_session.query(Clip).filter(Clip.clip_name == clip_name).first()
+
+        # get the matching textpull for that clip
+        db_text = scoped_session.query(TextPull).filter(TextPull.clip_id == db_clip.clip_id).first()
 
         # target the text frame on the slide
         txt = slide.placeholders[1]
 
         if txt.has_text_frame:
-            txt.text_frame.text = txt_source
+            txt.text_frame.text = db_text.pull_text
+
+    # close scoped session
+    db_session.remove()
 
     prs.save('new-slide-deck.pptx')
 
-clips = ['nemo2.mov', 'nemo.mov', 'nemo2.mov']
-txt_source = open('sample_qa.txt').read()
-
-
-FULL_TEXT = open('static/temp/Test-File.txt').readlines()
-
-
-# def find_text_by_time(start_clip, end_clip, source):
 
 def find_text_by_time(source):
     """Pulls corresponding text based on clip"""
@@ -56,57 +75,127 @@ def find_text_by_time(source):
 def find_text_by_page_line(start_pl, end_pl, source):
     """Pulls text based on page and line numbers"""
 
+    # split source text into a list - it goes in as readlines()
+    source = source.split('","')
+
+    # split the page num from the line num
     start_page_line = start_pl.split(':')
     end_page_line = end_pl.split(':')
 
-    # start_page = re.compile('0%s:\d{2}' % start_page_line[0])
-    
-    # for line in FULL_TEXT:
-    #     result = re.search('0%s:\d{2}' % start_page_line[0], line)
-    #     if result is not None:
-    #         if start_page_line[1] is not '01':
+    # convert to int
+    start_page = int(start_page_line[0])
+    start_line = int(start_page_line[1])
 
+    # if the end page is the same as the start page
+    # set end page to be start page
+    if len(end_page_line) == 1:
+        end_page = start_page
+        end_line = int(end_page_line[0])
+    else:
+        end_page = int(end_page_line[0])
+        end_line = int(end_page_line[1])
+
+    line_total = 0
+
+    # if the lines are on the same page
+    if start_page == end_page:
+        line_total = end_line - start_line + 1
+    # if pull spans more than 2 pages
+    elif start_page + 1 != end_page:
+        # find the number of full pages btwn start and end pages
+        middle_pages = end_page - start_page - 1
+        line_total = (26-start_line) + (middle_pages * 25) + end_line
+    # if they aren't - collect the line total from first page and end line from last
+    else:
+        line_total = (26-start_line) + end_line
+
+    # make a var to hold starting position of text
     start_pos = 0
-    for i in range(len(FULL_TEXT)):
-        result = re.search('0%s:\d{2}' % start_page_line[0], FULL_TEXT[i])
+
+    # search the lines of the transcript for the page number
+    for i in range(len(source)):
+        result = re.search('00%s:\d{2}' % start_page, source[i])
+        # once you find it - add the staring line to the i index
+        # so if it was page 13, line 5 - find 013:01
+        # then add 4 (5-1) lines to it - we subtract 1 bc we start on line 1
         if result is not None:
-            start_line = int(start_page_line[1])
-            if start_line > 1:
-                start_pos = i + start_line - 1
-                break
+            start_pos = i + start_line - 1
+            break
 
-    print start_pos
+    end_pos = line_total+start_pos
 
-    # start_page_line = start_pl.split(':')
-    # end_page_line = end_pl.split(':')
+    print start_pos, end_pos
+    # make a list to hold the lines of text
+    cropped_text = [];
+    start_at = ""
+    end_at = ""
 
-    # start_page = re.compile('0%s:\d{2}' % start_page_line[0])
-    # start_search = start_page.finditer(source)
+    timecode_only = re.compile("\s{2}(\d{2}:\d{2}:\d{2}.\d{3})\s")
+    # starting from the start_position and spanning the number of requested lines
+    # add each selected line to the list for clean up
+    for i in range(start_pos, end_pos):
+        if i == start_pos:
+            start_at = re.search(timecode_only, source[i]).group(1)
+        if i == end_pos - 1:
+            end_at = re.search(timecode_only, source[i]).group(1)
+        cropped_text.append(source[i])
 
-    # start_page_ind = 0
-    # # get the index of the page number
-    # for s in start_search:
-    #     start_page_ind = s.start()
+    # remove page and line excess 
+    pulled_text = clean_up_transcript_text(cropped_text)
 
-    # end_page = re.compile('0%s:\d{2}' % start_page_line[0])
-    # end_search = end_page.finditer(source)
+    # fix punctuation
+    pulled_text = fix_punctuation(pulled_text)
 
-    # end_page_ind = 0
-    # # get the index of the page number
-    # for e in end_search:
-    #     end_page_ind = e.start()
+    return (start_at, end_at, pulled_text)
 
-    # line_nums = re.compile('(\d\d\d:|\s\s\s)({})(\s\s)'.format(start_page_line[1]))
-    # line_search = line_nums.finditer(source, start_page_ind, end_page_ind)
+def clean_up_transcript_text(transcript_lines):
+    """Removes page/line/timecodes from raw transcript, returns clean string"""
 
-    # timecode = re.compile("\d{2}:\d{2}:\d{2}.\d{3}")
+    # ex:   00:15:59.946        17        or  00:16:46.550  00019:01       
+    page_line_pattern = re.compile("\s{2}\d{2}:\d{2}:\d{2}.\d{3}\s*\d{2}\s*|\d{3}:\d{2}\s*")
+
+    # find a capital A or Q followed by 5 spaces
+    q_a_pattern = re.compile("([QA])\s{5}")
+
+    clean_text = []
+
+    for line in transcript_lines:
+        line = line.rstrip()
+        clean_line = re.sub(page_line_pattern, "", line)
+        # print clean_line
+        clean_line = re.sub(q_a_pattern, '\g<1>.\t', clean_line)
+        # if its a Q. or A. line - add a new line before it
+        if clean_line.startswith("Q.") or clean_line.startswith("A."):
+            clean_line = "\n" + clean_line
+        # add to list of cleaned up text
+        clean_text.append(clean_line)
+
+    # print clean_text
+    pulled_text = " ".join(clean_text)
+
+    return pulled_text
 
 
-    # find the page num in the text
-    # look for the page followed by a colon and 2 nums
-    # spl_search = '0'+start_page_line[0]+':\d{2}'
-    # start_search = re.search(spl_search, source)
+def fix_punctuation(pulled_text):
+    """Fixes dumb quotes, em dashes, extra spaces"""
 
-    print start_page
+    # finds quote marks with a preceeding space which would be open
+    open_quote = re.compile('\s"')
 
-regobj = find_text_by_page_line('13:16', '14:08', FULL_TEXT)
+    # finds em dashes with spaces on either side or both sides
+    em_dash = re.compile(' ?-- ?')
+
+    # fix open quotes, and then any remaining dumb double quotes to be closing
+    pulled_text = re.sub(open_quote, u'\u201C', pulled_text)
+    pulled_text = re.sub('"', u'\u201D', pulled_text)
+
+    # fix em dashes
+    pulled_text = re.sub(em_dash, u'\u2014', pulled_text)
+
+    # fix single quotes
+    pulled_text = re.sub("'", u'\u2019', pulled_text)
+
+    # finally remove double spaces
+    pulled_text = re.sub("  ", " ", pulled_text)
+
+    return pulled_text
