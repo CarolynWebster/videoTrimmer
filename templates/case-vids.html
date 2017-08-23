@@ -5,7 +5,7 @@
 <h1>Case name: {{ case.case_name }}</h1>
 <p><a href='/case-settings/{{ case.case_id}}'>Case settings</a></p>
 <a href="/upload-video?case_id={{ case.case_id }}"><button>Upload a new video</button></a>
-<table>
+<table data-toggle="table" class="table table-sortable" id="clip-table">
     <tr>
         <th><input type='checkbox' id="select-all"></th>
         <th>Deponent</th>

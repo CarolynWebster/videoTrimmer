@@ -72,7 +72,8 @@ def pre_process_all_requests():
     # if there is an id in the session - get the user object
     if user_id:
         g.current_user = User.query.get(user_id)
-        g.user_cases = g.current_user.cases
+        if g.current_user is not None:
+            g.user_cases = g.current_user.cases
 
     # otherwise return None
     else:
@@ -191,6 +192,10 @@ def create_case(case_name, owner_id):
 
         #return the case object
         return Case.query.get(case_id)
+
+    db_session.remove()
+    # otherwise return the existing case
+    return case_check
 
 
 @app.route('/case-settings/<case_id>')
@@ -573,6 +578,8 @@ def upload_video():
 def upload_aws_db(video_file, video_name, case_id, user_id):
     """Handles upload to aws and addition to the db"""
 
+    print "\n\n\n\n\n\n\n UPLOAD \n\n\n\n\n\n\n"
+
     # you have to read the file in for some reason
     video_file = video_file.read()
 
@@ -715,7 +722,7 @@ def get_clip_source():
         # get the clip list from the form
         clip_list = request.form.get('clip-list')
         clips = clip_list.split(", ")
-
+        print clips
         # get if the user is using timecodes or page-line nums
         trim_method = request.form.get('trim_method')
 
@@ -733,10 +740,9 @@ def get_clip_source():
         clips_to_process = []
 
         # add the clips to the db - they will show up as processing until they are complete
-        for i in range(len(clips)):
-            clip_info = {}
+        for clip in clips:
             # split the start and end times
-            clip = clips[i].split('-')
+            clip = clip.split('-')
             # replace the : with _ since the : cause a filename issue
             start_time = clip[0].replace(":", "_")
             end_time = clip[1].replace(":", "_")
@@ -757,7 +763,7 @@ def get_clip_source():
                 db.session.commit()
 
                 clips_to_process.append(db_clip)
-
+        print "pro", clips_to_process
         # send the upload to a separate thread to upload while the user moves on
         download = threading.Thread(target=download_from_aws, args=(save_loc, clips_to_process, vid_id, user_id, vid_name)).start()
 
@@ -780,7 +786,7 @@ def download_from_aws(save_loc, clips, vid_id, user_id, vid_name):
 
     # gets the corresponding text for that clip if there is any
     pulled_text = pull_text(clips, vid_id)
-
+    print "dl", clips
     #once the file is available, make clips
     make_clips(save_loc, clips, vid_id, user_id)
 
@@ -827,7 +833,7 @@ def pull_text(clips, vid_id):
 def make_clips(file_loc, clips, vid_id, user_id):
     """Makes the designated clips once the file is downloaded"""
 
-    print "\n\n\n\n\n\n\n\n MAKING CLIPS \n\n\n\n\n\n\n\n\n"
+    print "\n\n\n\n\n\n\n\n MAKING CLIPS", file_loc, "\n\n\n\n\n\n\n\n\n"
 
     # make a videoFileClip object using temp location path from make-clips route
     # this is the main video we will make clips from
@@ -845,18 +851,23 @@ def make_clips(file_loc, clips, vid_id, user_id):
 
     scoped_session = db_session()
 
+    print clips
     # loop through the clips list and make clips for all the time codes given
     for clip in clips:
+        print clip
         # rebind to the db connected clip obj
-        clip = scoped_session.query(Clip).get(clip.clip_id)
+        clip = scoped_session.query(Clip).filter(Clip.clip_id == clip.clip_id).first()
+        print clip
         clip_name = clip.clip_name
+        clip_path = 'static/temp/'+clip_name
+        print clip_path
         # add to the list of files to upload
-        clips_to_upload.append(clip_name)
+        clips_to_upload.append(clip_path)
         print "times", clip.start_at, clip.end_at
         # create the new subclip
         new_clip = main_vid.subclip(t_start=clip.start_at, t_end=clip.end_at)
         # save the clip to our temp file location
-        new_clip.write_videofile('static/temp/'+clip_name, codec="libx264")
+        new_clip.write_videofile(clip_path, codec="libx264")
 
     db_session.remove()
     #establish session with aws
@@ -1091,7 +1102,7 @@ def delete_all_files(clips, vid_type):
         if vid_type == "clips":
             #use the clip_id part of the tuple to get the clip obj to delete
             file_to_del = scoped_session.query(Clip).get(clip[1])
-            
+
             # get and delete any cliptag associations for that clip
             tags = file_to_del.tags
             for tag in tags:
@@ -1118,7 +1129,7 @@ def delete_all_files(clips, vid_type):
                 
                 for tag in tags:
                     # find the cliptag association
-                    cliptag = scoped_session.query(ClipTag).filter(ClipTag.tag_id == tag.tag_id, 
+                    cliptag = scoped_session.query(ClipTag).filter(ClipTag.tag_id == tag.tag_id,
                                                                    ClipTag.clip_id == clip.clip_id).first()
 
                     # delete the cliptags so we can delete the clip itself
