@@ -45,7 +45,8 @@ function collect_checked_vids(evt){
     console.log(vids)
     var formInputs = {
         'clips': vids,
-        'call_func': evt.currentTarget.id
+        'call_func': evt.currentTarget.id,
+        'vid_type': "video"
     }
 
     var all_cboxes = $('.vidcheck:checkbox')
@@ -55,7 +56,7 @@ function collect_checked_vids(evt){
         console.log("download")
         //send direction to server
         //download function called from the handle-clips route
-        $.post('/handle-videos', formInputs, function() {
+        $.post('/handle-clips', formInputs, function() {
         console.log('request complete')
         location.reload();
         });
@@ -66,7 +67,7 @@ function collect_checked_vids(evt){
         //send direction to server
         //delete function called from the handle-clips route
         if (confirm_delete == true)
-            $.post('/handle-videos', formInputs, function() {
+            $.post('/handle-clips', formInputs, function() {
                 console.log('request complete')
                 location.reload();
             });

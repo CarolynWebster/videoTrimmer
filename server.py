@@ -40,6 +40,8 @@ from users import update_usercase, create_user, validate_usercase, get_user_by_e
 
 from tags import get_tags, add_tags, delete_cliptags
 
+from videos import upload_aws_db, update_vid_status, get_vid_url
+
 app = Flask(__name__)
 
 AWS_ACCESS_KEY = os.environ['AWS_ACCESS_KEY']
@@ -441,42 +443,9 @@ def upload_video():
             db.session.commit()
 
         # send the upload to a separate thread to upload while the user moves on
-        upload = threading.Thread(target=upload_aws_db, args=(video_file, video_name, case_id, user_id)).start()
+        upload = threading.Thread(target=upload_aws_db, args=(video_file, video_name, case_id, user_id, BUCKET_NAME)).start()
 
         return redirect('/cases/'+str(case_id))
-
-
-def upload_aws_db(video_file, video_name, case_id, user_id):
-    """Handles upload to aws and addition to the db"""
-
-    print "\n\n\n\n\n\n\n UPLOAD \n\n\n\n\n\n\n"
-
-    # you have to read the file in for some reason
-    video_file = video_file.read()
-
-    #start a connection with aws
-    session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
-    s3 = session.resource('s3')
-
-    # Put the video on aws
-    s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file)
-
-    # once the upload is complete - update the db status
-    update_vid_status(video_name)
-
-
-def update_vid_status(vid_name):
-    """Updates the video status once upload is complete"""
-
-    print "\n\n\n\n\n\n\n  STATUS UPDATE \n\n\n\n\n\n\n"
-    with app.app_context():
-        """with connects us back to the app/db"""
-        #get the video based on the name
-        vid = Video.query.filter(Video.vid_name == vid_name).first()
-
-        #update the status to be ready
-        vid.vid_status = 'Ready'
-        db.session.commit()
 
 
 @app.route('/show-video/<vid_id>')
@@ -492,17 +461,8 @@ def show_video(vid_id):
     user_permitted = validate_usercase(case_id, g.current_user.user_id)
 
     if user_permitted:
-        #establish connection with s3
-        s3C = boto3.client('s3')
-
-        # generate a url for the video streamer
-        url = s3C.generate_presigned_url(
-            ClientMethod='get_object',
-            Params={
-                'Bucket': BUCKET_NAME,
-                'Key': vid_name
-            }
-        )
+        # get temporary url for that video
+        url = get_vid_url(vid_name)
 
         return render_template('show-video.html', vid_id=vid_id, orig_vid=vid_name, vid_url=url)
     else:
@@ -517,20 +477,24 @@ def handle_videos():
 
     # get the list of requested clips
     selected_vids = request.form.get('clips')
-
-    # get a list of the clip objects from the db [(clip_name, clip_id)]
     selected_vids = selected_vids.strip()
     selected_vids = selected_vids.split(",")
 
     print "\n\n\n\n\n\n", selected_vids, "\n\n\n\n\n\n"
 
+    # find all the requested videos based on the vid_ids provided
     req_vids = Video.query.filter(Video.vid_id.in_(selected_vids)).all()
 
+    # since all requested videos are from the same case
+    # we can collect case info from the first video returned
     case_id = req_vids[0].case.case_id
-    case_name = req_vids[0].case.case_name
-    case_name = case_name.replace(" ", "_")
-    case_name = case_name.replace(".", "_")
+    folder_name = req_vids[0].case.case_name
 
+    # make some adjustments to the case name so we can use it as a folder name
+    folder_name = folder_name.replace(" ", "_")
+    folder_name = folder_name.replace(".", "_")
+
+    # identify if we are downloading or deleting
     func_to_perform = request.form.get('call_func')
 
     if func_to_perform == 'downloadClips':
@@ -544,6 +508,70 @@ def handle_videos():
 # CLIPS ------------------------------------------------------------------------
 
 
+@app.route('/handle-clips', methods=['POST'])
+@login_required
+def handle_clips():
+    """handle the selected clips and perform action based on btn clicked"""
+
+    # get the list of requested clips
+    selected_clips = request.form.get('clips')
+    selected_clips = selected_clips.strip()
+    selected_clips = selected_clips.split(",")
+
+    # get the function we are trying to do (delete, download, etc)
+    func_to_perform = request.form.get('call_func')
+
+    # get vid_type to know if we are working with full videos or clips
+    vid_type = request.form.get('vid_type')
+
+    print vid_type
+
+    if vid_type == "clip":
+        #get the vid id
+        vid_id = int(request.form.get('vid_id'))
+
+        #get the full video name
+        folder_name = Video.query.get(vid_id).vid_name[:-4]
+
+        # get a list of the clip objects from the db [(clip_name, clip_id)]
+        req_clips = db.session.query(Clip.clip_name, Clip.clip_id).join(Video).filter(
+                                    (Clip.clip_id.in_(selected_clips)) &
+                                    (Video.vid_id == vid_id)).all()
+
+        # call the appropriate function
+        if func_to_perform == 'downloadClips':
+            download_all_files(req_clips, folder_name, g.current_user)
+        elif func_to_perform == 'deleteClips':
+            delete_all_files(req_clips, "clips")
+        elif func_to_perform == 'stitchClips':
+            download_all_files(req_clips, vid_name, g.current_user, True)
+        elif func_to_perform == 'createDeck':
+            make_clip_ppt(req_clips, vid_name, g.current_user)
+
+        return redirect('/clips/{}'.format(vid_id))
+    
+    # if it's a video do these things
+    elif vid_type == "video":
+        # find all the requested videos based on the vid_ids provided
+        req_vids = Video.query.filter(Video.vid_id.in_(selected_clips)).all()
+
+        # since all requested videos are from the same case
+        # we can collect case info from the first video returned
+        case_id = req_vids[0].case.case_id
+        folder_name = req_vids[0].case.case_name
+
+        # make some adjustments to the case name so we can use it as a folder name
+        folder_name = folder_name.replace(" ", "_")
+        folder_name = folder_name.replace(".", "_")
+
+        if func_to_perform == 'downloadClips':
+            download_all_files(req_vids, folder_name, g.current_user)
+        elif func_to_perform == 'deleteClips':
+            delete_all_files(req_vids, "vids")
+
+        return redirect('/cases/{}'.format(case_id))
+
+
 @app.route('/trim-video/<vid_id>')
 @login_required
 def trim_video(vid_id):
@@ -552,20 +580,13 @@ def trim_video(vid_id):
     vid_to_trim = Video.query.get(vid_id)
     vid_name = vid_to_trim.vid_name
     case_id = vid_to_trim.case.case_id
+
     # check if user is permitted to see this content
     user_permitted = validate_usercase(case_id, g.current_user.user_id)
-    if user_permitted:
-        #establish connection with s3
-        s3C = boto3.client('s3')
 
-        #generate a url so the video can be previewed on the form page
-        url = s3C.generate_presigned_url(
-            ClientMethod='get_object',
-            Params={
-                'Bucket': BUCKET_NAME,
-                'Key': vid_name
-            }
-        )
+    if user_permitted:
+        # get temporary url
+        url = get_vid_url(vid_name)
 
         return render_template('trim-form.html', vid_id=vid_id, orig_vid=vid_name, vid_url=url)
     else:
@@ -807,56 +828,13 @@ def show_clip(clip_id):
     user_permitted = validate_usercase(case_id, g.current_user.user_id)
 
     if user_permitted:
-        #establish connection with s3
-        s3C = boto3.client('s3')
-
-        url = s3C.generate_presigned_url(
-            ClientMethod='get_object',
-            Params={
-                'Bucket': BUCKET_NAME,
-                'Key': clip_name
-            }
-        )
-
+        # get temporary url
+        url = get_vid_url(clip_name)
+        
         return render_template('show-video.html', vid_id=clip_id, orig_vid=clip_name, vid_url=url)
     else:
         flash("You don't have permission to view that case")
         return redirect('/cases')
-
-
-@app.route('/handle-clips', methods=['POST'])
-@login_required
-def handle_clips():
-    """handle the selected clips and perform action based on btn clicked"""
-
-    # get the list of requested clips
-    selected_clips = request.form.get('clips')
-
-    #get the vid id
-    vid_id = int(request.form.get('vid_id'))
-
-    #get the full video name
-    vid_name = Video.query.get(vid_id).vid_name[:-4]
-
-    # get a list of the clip objects from the db [(clip_name, clip_id)]
-    selected_clips = selected_clips.strip()
-    selected_clips = selected_clips.split(",")
-    req_clips = db.session.query(Clip.clip_name, Clip.clip_id).join(Video).filter(
-                                (Clip.clip_id.in_(selected_clips)) &
-                                (Video.vid_id == vid_id)).all()
-
-    func_to_perform = request.form.get('call_func')
-
-    if func_to_perform == 'downloadClips':
-        download_all_files(req_clips, vid_name, g.current_user)
-    elif func_to_perform == 'deleteClips':
-        delete_all_files(req_clips, "clips")
-    elif func_to_perform == 'stitchClips':
-        download_all_files(req_clips, vid_name, g.current_user, True)
-    elif func_to_perform == 'createDeck':
-        make_clip_ppt(req_clips, vid_name, g.current_user)
-
-    return redirect('/clips/{}'.format(vid_id))
 
 
 # CLIP AND VIDEO DOWNLOADING/DELETING FUNCTIONS --------------------------------

@@ -64,7 +64,8 @@ function collect_checked_vids(evt){
     var formInputs = {
         'clips': vids,
         'vid_id': {{ main_vid.vid_id }},
-        'call_func': evt.currentTarget.id
+        'call_func': evt.currentTarget.id,
+        'vid_type': "clip"
     }
 
     var all_cboxes = $('.vidcheck:checkbox')
