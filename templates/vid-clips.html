@@ -71,17 +71,10 @@ function collect_checked_vids(evt){
     var all_cboxes = $('.vidcheck:checkbox')
     all_cboxes.prop('checked', false);
 
-    if (evt.currentTarget.id == 'stitchClips') {
-        console.log("stitch")
-        //send direction to server
-        //download function called from the handle-clips route
-        $.post('/handle-clips', formInputs, function() {
-        console.log('request complete')
-        location.reload();
-        });
-    }
-    else if (evt.currentTarget.id == 'downloadClips') {
-        console.log("download")
+    if (evt.currentTarget.id == 'stitchClips' | 
+        evt.currentTarget.id == 'downloadClips' | 
+        evt.currentTarget.id == 'createDeck') {
+        console.log("handle-clips")
         //send direction to server
         //download function called from the handle-clips route
         $.post('/handle-clips', formInputs, function() {
@@ -98,13 +91,6 @@ function collect_checked_vids(evt){
             $.post('/handle-clips', formInputs, function() {
                 console.log('request complete')
                 location.reload();
-            });
-    }
-    else if (evt.currentTarget.id == 'createDeck') {
-      console.log('make deck')
-      $.post('/handle-clips', formInputs, 
-            function() {
-                console.log('request complete')
             });
     }
 }
