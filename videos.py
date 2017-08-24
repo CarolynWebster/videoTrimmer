@@ -16,7 +16,7 @@ from moviepy.editor import VideoFileClip
 
 from ppt import create_slide_deck, find_text_by_page_line
 
-from email import send_email
+from gmail import send_email
 
 #aws bucket name
 BUCKET_NAME = 'videotrim'
