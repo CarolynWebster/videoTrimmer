@@ -34,6 +34,12 @@ from email.mime.text import MIMEText
 
 from ppt import create_slide_deck, find_text_by_page_line
 
+from cases import create_case
+
+from users import update_usercase, create_user, validate_usercase, get_user_by_email
+
+from tags import get_tags, add_tags, delete_cliptags
+
 app = Flask(__name__)
 
 AWS_ACCESS_KEY = os.environ['AWS_ACCESS_KEY']
@@ -169,35 +175,6 @@ def register_case():
         return redirect('/cases')
 
 
-def create_case(case_name, owner_id):
-    """Creates a new case in the database"""
-
-    session = db_session()
-
-    # check if that case name already exists
-    case_check = session.query(Case).filter(Case.case_name == case_name).first()
-
-    if case_check is None:
-        #instantiate a new case in the db
-        new_case = Case(case_name=case_name, owner_id=owner_id)
-        #prime and commit the case to the db
-        session.add(new_case)
-        session.commit()
-
-        #get the newly assigned case_id
-        case_id = new_case.case_id
-
-        #close the session
-        db_session.remove()
-
-        #return the case object
-        return Case.query.get(case_id)
-
-    db_session.remove()
-    # otherwise return the existing case
-    return case_check
-
-
 @app.route('/case-settings/<case_id>')
 def show_case_settings(case_id):
     """Shows user settings for chosen case"""
@@ -223,45 +200,6 @@ def show_case_settings(case_id):
 
 
 # USER/USER CASES ---------------------------------------------------------------
-
-
-def validate_usercase(case_id, user_id):
-    """Validate is user is permitted access to a specifc case"""
-
-    # open session
-    session = db_session()
-
-    # check if the usercase exists already
-    case_user_check = session.query(UserCase).filter(UserCase.case_id == case_id,
-                                                     UserCase.user_id == user_id).first()
-
-    # close session
-    db_session.remove()
-    return case_user_check
-
-
-def update_usercase(case_id, user_id):
-    """Checks for user in database and adds if new - returns new usercase obj"""
-
-    # open
-    session = db_session()
-
-    # check if the usercase exists already
-    case_user_check = validate_usercase(case_id, user_id)
-
-    # if the relationship doesn't exist - create it
-    if case_user_check is None:
-        #create an association in the usercases table
-        user_case = UserCase(case_id=case_id, user_id=user_id)
-        session.add(user_case)
-        session.commit()
-
-    # close session
-    db_session.remove()
-
-    # return case_user_check so we can determine if the association is new or not
-    # if case_user_check is None - we can use that in the add-users route
-    return case_user_check
 
 
 @app.route('/add-usercase', methods=["POST"])
@@ -307,38 +245,13 @@ def remove_user_from_case():
     # get data
     case_id = request.form.get('case_id')
     user_id = request.form.get('del_user')
+
     # use validate usercase to return the usercase obj for this user/case
     usercase = validate_usercase(case_id, user_id)
-    print "\n\n\n\n\n\n", db.session, "\n\n\n\n\n\n\n"
     db.session.delete(usercase)
     db.session.commit()
 
     return "Usercase removed"
-
-
-def get_user_by_email(email):
-    """Creates new user and returns new or exisiting user object"""
-
-    # create a scoped session to interact with db
-    session = db_session()
-    #check if a user with that email exists already
-    #gets the user object for that email address
-    user_check = session.query(User).filter(User.email == email).first()
-
-    # if user already exists associate the user with the new case
-    if user_check is None:
-        #if the user is not registered - add them to the database
-        #they can add their password and name when they officially register
-        # make all emails lowercase to reduce doubled entries
-        user_check = User(email=email.lower())
-        #prime user to be added to db
-        session.add(user_check)
-        #commit user to db
-        session.commit()
-    #close the scoped session
-    db_session.remove()
-
-    return user_check
 
 
 # USER REGISTRATION/LOGIN ------------------------------------------------------
@@ -387,72 +300,38 @@ def logout_user():
     return redirect('/')
 
 
-@app.route('/register', methods=["GET"])
-def show_reg_form():
-    """Shows new user a registration form"""
-
-    return render_template('registration.html')
-
-@app.route('/register', methods=['POST'])
+@app.route('/register', methods=['GET', 'POST'])
 def register_user():
-    """Checks db for user and adds user if new"""
+    """User registration"""
 
-    fname = request.form.get('fname')
-    lname = request.form.get('lname')
-    email = request.form.get("email")
-    password = request.form.get("password")
+    # if it's a get - render registration form
+    if request.method == "GET":
+        """Shows new user a registration form"""
 
-    #check if user exists in db
-    user_check = User.query.filter_by(email=email).first()
+        return render_template('registration.html')
 
-    # if the user has a password - they are already registered
-    if user_check:
-        if user_check.password is not None:
-            #let us know user exists already and redirect to homepage to login
-            flash('You have already registered. Please log in.')
-        else:
-            user_check.password = password
-            user_check.fname = fname
-            user_check.lname = lname
+    # otherwise register user in db
+    if request.method == "POST":
+        """Checks db for user and adds user if new"""
 
-            db.session.commit()
-            flash('You have successfully registered.')
-            session['user_id'] = user_check.user_id
-    else:
-        #create user
-        user = User(email=email,
-                    password=password,
-                    fname=fname,
-                    lname=lname)
-        # prime user to be added to db
-        db.session.add(user)
-        # commit user to db
-        db.session.commit()
-        flash('You have successfully registered.')
-        # add user's ID num to the session
-        session['user_id'] = user.user_id
-    
-    # send them to their own page
-    return redirect('/cases')
+        fname = request.form.get('fname')
+        lname = request.form.get('lname')
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        # check if user exists in db already
+        # this would happen if they were added to a case
+        # but haven't actually registered yet
+        user_check = User.query.filter_by(email=email).first()
+
+        # create user or update the existing unregistered
+        create_user(user_check, email, fname, lname, password)
+
+        # send them to their own page
+        return redirect('/cases')
 
 
 # TAGS/CLIPTAGS ----------------------------------------------------------------
-
-
-def get_tags(case_id):
-    """Returns the tags associated with a case and the default tags"""
-
-    session = db_session()
-    # db_session is a scoped session
-    # query the db for the DEFAULT case
-    default_case = session.query(Case).filter(Case.case_name == "DEFAULT").first()
-    # find all the tags for this provided case as well as default tags
-    tags = session.query(Tag).filter((Tag.case_id == case_id) |
-                                     (Tag.case_id == default_case.case_id)).all()
-
-    db_session.remove()
-    # return a list of tags
-    return tags
 
 
 @app.route('/add-tags', methods=["POST"])
@@ -469,42 +348,20 @@ def add_tags_to_case():
     tags = tags.split(",")
 
     for tag in tags:
-        #check if a user with that email exists already
-        #gets the user object for that email address
-        tag_check = Tag.query.filter(Tag.tag_name == tag, Tag.case_id == case_id).first()
-        # if user already exists associate the user with the new case
-        if tag_check is None:
-            #if the user is not registered - add them to the database
-            #they can add their password and name when they officially register
-            tag = Tag(tag_name=tag, case_id=case_id)
-            #prime user to be added to db
-            db.session.add(tag)
-            #commit user to db
-            db.session.commit()
+        add_tags(tag, case_id)
 
     return "Tags were added successfully"
 
 
 @app.route('/delete-tag', methods=['POST'])
-def remove_tag_and_assoc():
-    """Removes a tag from a case and removes associations from clips"""
+def delete_tag():
+    """Removes a tag from a case and removes cliptag associations"""
 
     # get data
-    # case_id = request.form.get('case_id')
     tag_id = request.form.get('del_tag')
 
+    # get tag
     tag = Tag.query.get(tag_id)
-
-    # get all clips associated with that tag
-    tagged_clips = tag.clips
-
-    # delete the cliptag association for each clip so we can delete the tag itself
-    for clip in tagged_clips:
-        # get the cliptag object to be deleted
-        cliptag = ClipTag.query.filter(ClipTag.clip_id == clip.clip_id,
-                                       ClipTag.tag_id == tag.tag_id).first()
-        db.session.delete(cliptag)
-        db.session.commit()
 
     # delete the tag itself from the db
     db.session.delete(tag)
@@ -538,41 +395,55 @@ def add_cliptags():
 # VIDEO ------------------------------------------------------------------------
 
 
-@app.route('/upload-video', methods=["GET"])
-@login_required
-def show_upload_form():
-    """Load form for user to upload new video"""
-
-    case_id = request.args.get('case_id')
-
-    return render_template('upload-video.html', case_id=case_id)
-
-
-@app.route('/upload-video', methods=["POST"])
+@app.route('/upload-video', methods=["GET","POST"])
 @login_required
 def upload_video():
-    """Uploads video to aws"""
+    """Handle file uploads"""
 
-    case_id = request.form.get('case_id')
-    video_file = request.files.get("rawvid")
-    video_name = video_file.filename
-    user_id = g.current_user.user_id
+    # if it's a get - render registration form
+    if request.method == "GET":
+        """Load form for user to upload new video"""
 
-    #get deponent name and recorded date
-    deponent = request.form.get('name')
-    recorded_at = request.form.get('date-taken')
+        case_id = request.args.get('case_id')
 
-    # add the video to the db
-    date_added = datetime.now()
-    new_vid = Video(case_id=case_id, vid_name=video_name, added_by=user_id,
-                    added_at=date_added, deponent=deponent, recorded_at=recorded_at)
-    db.session.add(new_vid)
-    db.session.commit()
+        return render_template('upload-video.html', case_id=case_id)
 
-    # send the upload to a separate thread to upload while the user moves on
-    upload = threading.Thread(target=upload_aws_db, args=(video_file, video_name, case_id, user_id)).start()
+    # otherwise register user in db
+    if request.method == "POST":
+        """Uploads video to aws"""
 
-    return redirect('/cases/'+str(case_id))
+        case_id = request.form.get('case_id')
+        video_file = request.files.get("rawvid")
+        video_name = video_file.filename
+        try:
+            transcript_file = request.files.get("tscript")
+        except:
+            transcript_file = None
+        user_id = g.current_user.user_id
+
+        #get deponent name and recorded date
+        deponent = request.form.get('name')
+        recorded_at = request.form.get('date-taken')
+
+        # add the video to the db
+        date_added = datetime.now()
+        new_vid = Video(case_id=case_id, vid_name=video_name, added_by=user_id,
+                        added_at=date_added, deponent=deponent, recorded_at=recorded_at)
+        db.session.add(new_vid)
+        db.session.commit()
+
+        if transcript_file:
+            # add the transcript if there is one
+            # we use readlines so we can search it easier
+            script_text = transcript_file.readlines()
+            new_script = Transcript(vid_id=new_vid.vid_id, text=script_text)
+            db.session.add(new_script)
+            db.session.commit()
+
+        # send the upload to a separate thread to upload while the user moves on
+        upload = threading.Thread(target=upload_aws_db, args=(video_file, video_name, case_id, user_id)).start()
+
+        return redirect('/cases/'+str(case_id))
 
 
 def upload_aws_db(video_file, video_name, case_id, user_id):
@@ -753,7 +624,7 @@ def get_clip_source():
 
             #check if the clip exists already
             clip_check = Clip.query.filter_by(clip_name=key_name).first()
-            if clip_check is None:
+            if clip_check is None or clip_check.clip_status != "Ready":
                 # add the clip to our db
                 if trim_method == "time":
                     db_clip = Clip(vid_id=vid_id, start_at=clip[0], end_at=clip[1], created_by=user_id, clip_name=key_name)
@@ -776,17 +647,17 @@ def get_clip_source():
 def download_from_aws(save_loc, clips, vid_id, user_id, vid_name):
     """Downloads file from aws"""
 
+    print "dl", clips
     # if the video hasn't been downloaded already - download it
     if os.path.isfile(save_loc) is False:
         client = boto3.client('s3')
         client.download_file(BUCKET_NAME, vid_name, save_loc)
         while os.path.isfile(save_loc) is False:
             #wait for it to download
-            pass
+            print "downloading"
 
     # gets the corresponding text for that clip if there is any
     pulled_text = pull_text(clips, vid_id)
-    print "dl", clips
     #once the file is available, make clips
     make_clips(save_loc, clips, vid_id, user_id)
 
@@ -1102,16 +973,6 @@ def delete_all_files(clips, vid_type):
         if vid_type == "clips":
             #use the clip_id part of the tuple to get the clip obj to delete
             file_to_del = scoped_session.query(Clip).get(clip[1])
-
-            # get and delete any cliptag associations for that clip
-            tags = file_to_del.tags
-            for tag in tags:
-                # find the cliptag association
-                cliptag = scoped_session.query(ClipTag).filter(ClipTag.tag_id == tag.tag_id, 
-                                                               ClipTag.clip_id == file_to_del.clip_id).first()
-                # delete the cliptags so we can delete the clip itself
-                scoped_session.delete(cliptag)
-                scoped_session.commit()
             
             # add the clip name to a list of clips to be deleted from aws
             delete_aws.append({'Key': clip[0]})
@@ -1124,22 +985,6 @@ def delete_all_files(clips, vid_type):
             clips = file_to_del.clips
 
             for clip in clips:
-                # get and delete any cliptag associations for that clip
-                tags = clip.tags
-                
-                for tag in tags:
-                    # find the cliptag association
-                    cliptag = scoped_session.query(ClipTag).filter(ClipTag.tag_id == tag.tag_id,
-                                                                   ClipTag.clip_id == clip.clip_id).first()
-
-                    # delete the cliptags so we can delete the clip itself
-                    scoped_session.delete(cliptag)
-                    scoped_session.commit()
-
-                # delete the clip itself
-                scoped_session.delete(clip)
-                scoped_session.commit()
-
                 # add it to list of files to remove from aws
                 delete_aws.append({'Key': clip.clip_name})
 

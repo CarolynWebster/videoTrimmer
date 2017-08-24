@@ -8,7 +8,8 @@ enctype="multipart/form-data"> -->
 <form action="#" enctype="multipart/form-data" method="POST" id='vid-upload'>
     <input type="text" name="name" id="name" placeholder="Jane Doe"><br/>
     <input type="date" name="date-taken" id="date-taken"><br/>
-    <input type="file" name='rawvid' id='rawvid'><br/>
+    Video file:<input type="file" name='rawvid' id='rawvid' required><br/>
+    Text Transcript:<input type="file" name='tscript' id='tscript'></br>
     <input type="hidden" name='case_id' id='case_id' value={{ case_id }}>
     <input type="submit" value='Upload'>
 </form>
@@ -21,6 +22,7 @@ enctype="multipart/form-data"> -->
             'date-taken': $('#date-taken').val(),
             'rawvid': $('#rawvid').val(),
             'case_id': $('#case_id').val()
+            'tscript': $('#tscript').val()
         };
         $.post('/upload-video', formData).then(function (results) {
             console.log(results);

@@ -64,8 +64,8 @@ class UserCase(db.Model):
     __tablename__ = "usercases"
 
     id = db.Column(db.Integer, autoincrement=True, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    case_id = db.Column(db.Integer, db.ForeignKey('cases.case_id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+    case_id = db.Column(db.Integer, db.ForeignKey('cases.case_id'))
 
     case = db.relationship("Case", backref='userCases')
     user = db.relationship("User", backref='userCases')
@@ -84,8 +84,8 @@ class Zip(db.Model):
 
     zip_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     zip_name = db.Column(db.String(100), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    vid_id = db.Column(db.Integer, db.ForeignKey('videos.vid_id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+    vid_id = db.Column(db.Integer, db.ForeignKey('videos.vid_id'))
 
     user = db.relationship("User", backref="zips")
 
@@ -101,15 +101,17 @@ class Video(db.Model):
 
     vid_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     vid_name = db.Column(db.String(75), nullable=False)
-    case_id = db.Column(db.Integer, db.ForeignKey('cases.case_id'), nullable=False)
+    case_id = db.Column(db.Integer, db.ForeignKey('cases.case_id'))
     # vid_url = db.Column(db.String(100), nullable=False)
-    added_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    added_by = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     added_at = db.Column(db.DateTime, nullable=False)
     vid_status = db.Column(db.String(10), default='Processing')
     recorded_at = db.Column(db.DateTime)
     deponent = db.Column(db.String(50))
 
     case = db.relationship("Case", backref="videos")
+    clips = db.relationship("Clip", backref="video", cascade="delete")
+    transcript = db.relationship("Transcript", backref="video", cascade="delete")
 
     def __repr__(self):
         """useful video info"""
@@ -125,17 +127,18 @@ class Clip(db.Model):
     __tablename__ = "clips"
 
     clip_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
-    vid_id = db.Column(db.Integer, db.ForeignKey('videos.vid_id'), nullable=False)
+    vid_id = db.Column(db.Integer, db.ForeignKey('videos.vid_id'))
     clip_name = db.Column(db.String(100), nullable=False)
     start_pl = db.Column(db.String(10))
     end_pl = db.Column(db.String(10))
     start_at = db.Column(db.String(20))
     end_at = db.Column(db.String(20))
-    created_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     clip_status = db.Column(db.String(10), default='Processing')
 
     user = db.relationship("User", backref="clips")
-    video = db.relationship("Video", backref="clips")
+    # video = db.relationship("Video", backref="clips")
+    cliptags = db.relationship('ClipTag', cascade="delete")
 
     def __repr__(self):
         """useful clip info"""
@@ -155,6 +158,7 @@ class Tag(db.Model):
 
     case = db.relationship('Case', backref="tags")
     clips = db.relationship('Clip', secondary="cliptags", backref="tags")
+    cliptags = db.relationship('ClipTag', cascade="delete")
 
     def __repr__(self):
         """useful tag info"""
@@ -187,10 +191,10 @@ class Transcript(db.Model):
     __tablename__ = "transcripts"
 
     t_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
-    vid_id = vid_id = db.Column(db.Integer, db.ForeignKey('videos.vid_id'), nullable=False)
+    vid_id = vid_id = db.Column(db.Integer, db.ForeignKey('videos.vid_id'))
     text = db.Column(db.Text, nullable=False)
 
-    video = db.relationship("Video", backref="transcript")
+    # video = db.relationship("Video", backref="transcript")
 
     def __repr__(self):
         """useful transcript info"""
