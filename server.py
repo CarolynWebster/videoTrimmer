@@ -470,39 +470,39 @@ def show_video(vid_id):
         return redirect('/cases')
 
 
-@app.route('/handle-videos', methods=['POST'])
-@login_required
-def handle_videos():
-    """handle the selected full videos and perform action based on btn clicked"""
+# @app.route('/handle-videos', methods=['POST'])
+# @login_required
+# def handle_videos():
+#     """handle the selected full videos and perform action based on btn clicked"""
 
-    # get the list of requested clips
-    selected_vids = request.form.get('clips')
-    selected_vids = selected_vids.strip()
-    selected_vids = selected_vids.split(",")
+#     # get the list of requested clips
+#     selected_vids = request.form.get('clips')
+#     selected_vids = selected_vids.strip()
+#     selected_vids = selected_vids.split(",")
 
-    print "\n\n\n\n\n\n", selected_vids, "\n\n\n\n\n\n"
+#     print "\n\n\n\n\n\n", selected_vids, "\n\n\n\n\n\n"
 
-    # find all the requested videos based on the vid_ids provided
-    req_vids = Video.query.filter(Video.vid_id.in_(selected_vids)).all()
+#     # find all the requested videos based on the vid_ids provided
+#     req_vids = Video.query.filter(Video.vid_id.in_(selected_vids)).all()
 
-    # since all requested videos are from the same case
-    # we can collect case info from the first video returned
-    case_id = req_vids[0].case.case_id
-    folder_name = req_vids[0].case.case_name
+#     # since all requested videos are from the same case
+#     # we can collect case info from the first video returned
+#     case_id = req_vids[0].case.case_id
+#     folder_name = req_vids[0].case.case_name
 
-    # make some adjustments to the case name so we can use it as a folder name
-    folder_name = folder_name.replace(" ", "_")
-    folder_name = folder_name.replace(".", "_")
+#     # make some adjustments to the case name so we can use it as a folder name
+#     folder_name = folder_name.replace(" ", "_")
+#     folder_name = folder_name.replace(".", "_")
 
-    # identify if we are downloading or deleting
-    func_to_perform = request.form.get('call_func')
+#     # identify if we are downloading or deleting
+#     func_to_perform = request.form.get('call_func')
 
-    if func_to_perform == 'downloadClips':
-        download_all_files(req_vids, case_name, g.current_user)
-    elif func_to_perform == 'deleteClips':
-        delete_all_files(req_vids, "vids")
+#     if func_to_perform == 'downloadClips':
+#         download_all_files(req_vids, case_name, g.current_user)
+#     elif func_to_perform == 'deleteClips':
+#         delete_all_files(req_vids, "vids")
 
-    return redirect('/cases/{}'.format(case_id))
+#     return redirect('/cases/{}'.format(case_id))
 
 
 # CLIPS ------------------------------------------------------------------------
@@ -524,7 +524,7 @@ def handle_clips():
     # get vid_type to know if we are working with full videos or clips
     vid_type = request.form.get('vid_type')
 
-    print vid_type
+    # req_clips = []
 
     if vid_type == "clip":
         #get the vid id
@@ -538,38 +538,36 @@ def handle_clips():
                                     (Clip.clip_id.in_(selected_clips)) &
                                     (Video.vid_id == vid_id)).all()
 
-        # call the appropriate function
-        if func_to_perform == 'downloadClips':
-            download_all_files(req_clips, folder_name, g.current_user)
-        elif func_to_perform == 'deleteClips':
-            delete_all_files(req_clips, "clips")
-        elif func_to_perform == 'stitchClips':
-            download_all_files(req_clips, vid_name, g.current_user, True)
+        # stitch clip and create deck are only availble for clips
+        # the true is to trigger the stitch function
+        if func_to_perform == 'stitchClips':
+            download_all_files(req_clips, vid_name, g.current_user, vid_type, True)
         elif func_to_perform == 'createDeck':
             make_clip_ppt(req_clips, vid_name, g.current_user)
 
-        return redirect('/clips/{}'.format(vid_id))
-    
+        # return redirect('/clips/{}'.format(vid_id))
+
     # if it's a video do these things
     elif vid_type == "video":
         # find all the requested videos based on the vid_ids provided
-        req_vids = Video.query.filter(Video.vid_id.in_(selected_clips)).all()
+        req_clips = Video.query.filter(Video.vid_id.in_(selected_clips)).all()
 
         # since all requested videos are from the same case
         # we can collect case info from the first video returned
-        case_id = req_vids[0].case.case_id
-        folder_name = req_vids[0].case.case_name
+        case_id = req_clips[0].case.case_id
+        folder_name = req_clips[0].case.case_name
 
         # make some adjustments to the case name so we can use it as a folder name
         folder_name = folder_name.replace(" ", "_")
         folder_name = folder_name.replace(".", "_")
 
-        if func_to_perform == 'downloadClips':
-            download_all_files(req_vids, folder_name, g.current_user)
-        elif func_to_perform == 'deleteClips':
-            delete_all_files(req_vids, "vids")
-
-        return redirect('/cases/{}'.format(case_id))
+    print "\n\n\n\n\n\n\n\n", req_clips, "\n\n\n\n\n\n"
+    # call the appropriate function
+    if func_to_perform == 'downloadClips':
+        download_all_files(req_clips, folder_name, g.current_user, vid_type)
+    elif func_to_perform == 'deleteClips':
+        delete_all_files(req_clips, vid_type)
+    return "request complete"
 
 
 @app.route('/trim-video/<vid_id>')
@@ -869,7 +867,7 @@ def make_clip_ppt(clips, vid_name, user):
 
 
 
-def download_all_files(clips, vid_name, user, stitch=False):
+def download_all_files(clips, vid_name, user, vid_type, stitch=False):
     """Download selected clips and save as a zip"""
 
     # get data
@@ -895,15 +893,21 @@ def download_all_files(clips, vid_name, user, stitch=False):
     # make zip with either all individual clips or one stitched clip
     with zipfile.ZipFile("static/"+zip_url, 'w') as clipzip:
         for clip in clips:
-            # our query returns a tuple (clip_name, clip_id)
-            file_name = clip[0]
+            if vid_type == "clip":
+                # our query returns a tuple (clip_name, clip_id)
+                file_name = clip[0]
+            elif vid_type == "video":
+                file_name = clip.vid_name
 
             # make a save location for the downloaded clips in the temp folder
             save_loc = 'static/temp/'+file_name
 
-            # connect to aws
-            s3 = boto3.resource('s3')
-            s3.meta.client.download_file(BUCKET_NAME, file_name, save_loc)
+            print "\n\n\n\n\n\n\n", file_name, save_loc, "\n\n\n\n\n\n\n"
+            # if we don't have it stored in temp, download it
+            if not os.path.exists(save_loc):
+                # connect to aws
+                s3 = boto3.resource('s3')
+                s3.meta.client.download_file(BUCKET_NAME, file_name, save_loc)
 
             # if we aren't stitching add the individual file to the zip
             if stitch is False:
@@ -948,7 +952,7 @@ def delete_all_files(clips, vid_type):
     
     # go through all clip/video ids and delete accordingly
     for clip in clips:
-        if vid_type == "clips":
+        if vid_type == "clip":
             #use the clip_id part of the tuple to get the clip obj to delete
             file_to_del = scoped_session.query(Clip).get(clip[1])
             
@@ -956,7 +960,7 @@ def delete_all_files(clips, vid_type):
             delete_aws.append({'Key': clip[0]})
         
         # we have to delete clip tags, clip, and then the video if it's a video
-        if vid_type == "vids":
+        if vid_type == "video":
             file_to_del = scoped_session.query(Video).get(clip.vid_id)
 
             # get any clips associated with this video - list of clip objs

@@ -53,7 +53,7 @@ def update_vid_status(vid_name):
 
 def get_vid_url(name):
     """Gets a temporary url to play video on the site using video player"""
-    
+
     #establish connection with s3
     s3C = boto3.client('s3')
 
@@ -66,4 +66,5 @@ def get_vid_url(name):
     )
 
     return url
+
 
