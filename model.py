@@ -217,14 +217,63 @@ class TextPull(db.Model):
 
         return "TextPull tp_id={} clip_name ={}>".format(self.tp_id, self.clip_id)
 
+
+def example_data():
+    """Create some sample data."""
+
+    # In case this is run more than once, empty out existing data
+    Clip.query.delete()
+    UserCase.query.delete()
+    Video.query.delete()
+    Case.query.delete()
+    User.query.delete()
+
+    bob = User(email="bob@gmail.com", password="123", fname="Bob", lname="Bobson")
+    sally = User(email="sally@gmail.com", password="123", fname="Sally", lname="Sallison")
+    jane = User(email="jane@gmail.com", password="123", fname="Jane", lname="Janey")
+
+    db.session.add_all([bob, sally, jane])
+    db.session.commit()
+
+    case1 = Case(owner_id=bob.user_id, case_name="Us v. Them")
+    case2 = Case(owner_id=bob.user_id, case_name="Cats v. Dogs")
+    case3 = Case(owner_id=sally.user_id, case_name="Sanity v. Testing")
+
+    db.session.add_all([case1, case2, case3])
+    db.session.commit()
+
+    usercase1 = UserCase(case_id=case1.case_id, user_id=sally.user_id)
+    usercase2 = UserCase(case_id=case1.case_id, user_id=jane.user_id)
+    usercase3 = UserCase(case_id=case2.case_id, user_id=sally.user_id)
+
+    db.session.add_all([usercase1, usercase2, usercase3])
+    db.session.commit()
+
+    vid1 = Video(case_id=case1.case_id, vid_name="Test Video 1", added_by=bob.user_id, added_at=datetime.now(), vid_status='Ready', deponent="Sierra Chappell")
+    vid2 = Video(case_id=case2.case_id, vid_name="Test Video 2", added_by=bob.user_id, added_at=datetime.now(), vid_status='Ready', deponent="Rose Johns")
+    vid3 = Video(case_id=case3.case_id, vid_name="Test Video 3", added_by=sally.user_id, added_at=datetime.now(), vid_status='Ready', deponent="Kristen Stotts")
+
+    db.session.add_all([vid1, vid2, vid3])
+    db.session.commit()
+
+    clip1 = Clip(vid_id=vid1.vid_id, clip_name="Test Clip 1", created_by=jane.user_id, clip_status='Ready')
+    clip2 = Clip(vid_id=vid2.vid_id, clip_name="Test Clip 2", created_by=bob.user_id, clip_status='Ready')
+    clip3 = Clip(vid_id=vid3.vid_id, clip_name="Test Clip 3", created_by=sally.user_id, clip_status='Ready')
+
+    db.session.add_all([clip1, clip2, clip3])
+    db.session.commit()
+
+    tag1 = Tag(case_id=case1.case_id, tag_name="Awesome")
+    tag2 = Tag(case_id=case2.case_id, tag_name="Cats")
+
+    db.session.add_all([tag1, tag2])
+    db.session.commit()
+
 ##############################################################################
 # Helper functions
 
-def connect_to_db(app):
-    """Connect the database to our Flask app."""
-
-    # Configure to use our PstgreSQL database
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///vidtrimmer'
+def connect_to_db(app, db_uri="postgresql:///vidtrimmer"):
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.app = app
     db.init_app(app)

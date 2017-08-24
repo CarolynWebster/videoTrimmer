@@ -15,7 +15,7 @@ def get_tags(case_id):
     # find all the tags for this provided case as well as default tags
     tags = scoped_session.query(Tag).filter((Tag.case_id == case_id) |
                                      (Tag.case_id == default_case.case_id)).all()
-
+    print tags
     # close db session
     db_session.remove()
     # return a list of tags
