@@ -8,7 +8,7 @@ from moviepy.editor import *
 
 from jinja2 import StrictUndefined
 
-from flask import Flask, render_template, request, redirect, flash, session, url_for, g
+from flask import Flask, render_template, request, redirect, flash, session, url_for, g, jsonify
 
 from functools import wraps
 
@@ -26,7 +26,7 @@ from cases import create_case
 
 from users import update_usercase, create_user, validate_usercase, get_user_by_email
 
-from tags import get_tags, add_tags
+from tags import get_tags, add_tags, delete_cliptags
 
 from videos import upload_aws_db, download_from_aws, get_vid_url
 from videos import add_clip_to_db, make_clip_ppt, download_all_files, delete_all_files
@@ -380,8 +380,23 @@ def add_cliptags():
         clip.tags.append(tag)
         db.session.commit()
 
+        response = {'tag': tag.tag_name, 'clip_id': clip_id}
         #return the tag to be added to the html
-        return tag.tag_name
+        return jsonify(response)
+
+@app.route('/remove-cliptag', methods=["POST"])
+def remove_cliptag():
+    """Removes a clip tag"""
+
+    #get clip id and tag from request
+    clip_id = request.form.get('clip_id')
+    req_tag = request.form.get('tag')
+
+    result = delete_cliptags(clip_id, req_tag)
+    
+    # "Success" message is sent if successful
+    if result:
+        return result
 
 
 # VIDEO ------------------------------------------------------------------------

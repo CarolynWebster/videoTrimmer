@@ -36,8 +36,10 @@ def add_tags(tag, case_id):
         db.session.commit()
 
 
-def delete_cliptags(clip_id, tag_id):
+def delete_cliptags(clip_id, tag_name):
     """Deletes a tag from a case and any associated clips"""
+
+    tag_id = db.session.query(Tag.tag_id).filter(Tag.tag_name == tag_name)
 
     # get the cliptag object to be deleted
     cliptag = db.session.query(ClipTag).filter(ClipTag.clip_id == clip_id,
@@ -45,3 +47,5 @@ def delete_cliptags(clip_id, tag_id):
     # delete the cliptag
     db.session.delete(cliptag)
     db.session.commit()
+
+    return "Success"
