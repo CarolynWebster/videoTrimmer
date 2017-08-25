@@ -1,6 +1,6 @@
 """User functions for video trimmer"""
 
-from model import Case, db_session, UserCase, User
+from model import Case, db, UserCase, User
 
 from flask import session, flash
 
@@ -8,23 +8,15 @@ from flask import session, flash
 def validate_usercase(case_id, user_id):
     """Validate is user is permitted access to a specifc case"""
 
-    # open session
-    scoped_session = db_session()
-
     # check if the usercase exists already
-    case_user_check = scoped_session.query(UserCase).filter(UserCase.case_id == case_id,
+    case_user_check = db.session.query(UserCase).filter(UserCase.case_id == case_id,
                                                      UserCase.user_id == user_id).first()
-
-    # close session
-    db_session.remove()
+    print session['user_id'], case_user_check, "\n\n\n\n\n\n"
     return case_user_check
 
 
 def update_usercase(case_id, user_id):
     """Checks for user in database and adds if new - returns new usercase obj"""
-
-    # open
-    scoped_session = db_session()
 
     # check if the usercase exists already
     case_user_check = validate_usercase(case_id, user_id)
@@ -33,11 +25,8 @@ def update_usercase(case_id, user_id):
     if case_user_check is None:
         #create an association in the usercases table
         user_case = UserCase(case_id=case_id, user_id=user_id)
-        scoped_session.add(user_case)
-        scoped_session.commit()
-
-    # close session
-    db_session.remove()
+        db.session.add(user_case)
+        db.session.commit()
 
     # return case_user_check so we can determine if the association is new or not
     # if case_user_check is None - we can use that in the add-users route
@@ -52,9 +41,6 @@ def create_user(user_check, email, fname, lname, password):
 
     """
 
-    # open session
-    scoped_session = db_session()
-
     # if the user has not been added to an existing case - create new user
     if user_check is None:
         #create user
@@ -63,9 +49,9 @@ def create_user(user_check, email, fname, lname, password):
                     fname=fname,
                     lname=lname)
         # prime user to be added to db
-        scoped_session.add(user)
+        db.session.add(user)
         # commit user to db
-        scoped_session.commit()
+        db.session.commit()
         flash('You have successfully registered.')
         # add user's ID num to the session
         session['user_id'] = user.user_id
@@ -79,23 +65,19 @@ def create_user(user_check, email, fname, lname, password):
             user_check.fname = fname
             user_check.lname = lname
 
-            scoped_session.commit()
+            db.session.commit()
 
             flash('You have successfully registered.')
             session['user_id'] = user_check.user_id
 
-    # close session
-    db_session.remove()
 
 
 def get_user_by_email(email):
     """Creates new user and returns new or exisiting user object"""
 
-    # create a scoped session to interact with db
-    scoped_session = db_session()
     #check if a user with that email exists already
     #gets the user object for that email address
-    user_check = scoped_session.query(User).filter(User.email == email).first()
+    user_check = db.session.query(User).filter(User.email == email).first()
 
     # if user already exists associate the user with the new case
     if user_check is None:
@@ -104,10 +86,8 @@ def get_user_by_email(email):
         # make all emails lowercase to reduce doubled entries
         user_check = User(email=email.lower())
         #prime user to be added to db
-        scoped_session.add(user_check)
+        db.session.add(user_check)
         #commit user to db
-        scoped_session.commit()
-    #close the scoped session
-    db_session.remove()
+        db.session.commit()
 
     return user_check

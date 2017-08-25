@@ -76,9 +76,9 @@ class FlaskTestsDatabase(TestCase):
 
         with self.client as c:
             with c.session_transaction() as sess:
-                sess['user_id'] = '1'
+                sess['user_id'] = 1
 
-            result = self.client.get('/cases/1')
+            result = self.client.get('/cases/1', follow_redirects=True)
 
             self.assertIn('Test Video 1', result.data)
 
@@ -88,14 +88,14 @@ class FlaskTestsDatabase(TestCase):
 
         with self.client as c:
             with c.session_transaction() as sess:
-                sess['user_id'] = '1'
+                sess['user_id'] = 1
 
             # Video 1 should display Test Clip 1
-            resultClip1 = self.client.get('/clips/1')
+            resultClip1 = self.client.get('/clips/1', follow_redirects=True)
             self.assertIn('Test Clip 1', resultClip1.data)
 
             # Video 2 should not show Test Clip 1
-            resultClip2 = self.client.get('clips/2')
+            resultClip2 = self.client.get('clips/2', follow_redirects=True)
             self.assertNotIn('Test Clip 1', resultClip2.data)
 
     def test_casetag(self):
@@ -103,13 +103,13 @@ class FlaskTestsDatabase(TestCase):
 
         with self.client as c:
             with c.session_transaction() as sess:
-                sess['user_id'] = '1'
+                sess['user_id'] = 1
 
             # Awesome is a tag for Case 1
-            resultTag1 = self.client.get('/case-settings/1')
+            resultTag1 = self.client.get('/case-settings/1', follow_redirects=True)
             self.assertIn('Awesome', resultTag1.data)
             self.assertNotIn('Cats', resultTag1.data)
-            
+   
 
 
 

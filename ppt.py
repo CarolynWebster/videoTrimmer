@@ -3,7 +3,7 @@ from pptx.util import Inches, Pt
 
 import re
 
-from model import db, connect_to_db, Clip, TextPull, db_session
+from model import db, connect_to_db, Clip, TextPull
 
 from moviepy.editor import *
 
@@ -20,9 +20,6 @@ def create_slide_deck(template, clips):
 
     # create a new presentation
     prs = Presentation(template)
-
-    # start a scoped session
-    scoped_session = db_session()
 
     # make a new slide for each clip
     for clip in clips:
@@ -43,10 +40,10 @@ def create_slide_deck(template, clips):
         video = slide.shapes.add_movie(clip, vid_HP, vid_VP, vid_W, vid_H, vid_front)
 
         # get the clip from the db
-        db_clip = scoped_session.query(Clip).filter(Clip.clip_name == clip_name).first()
+        db_clip = db.session.query(Clip).filter(Clip.clip_name == clip_name).first()
 
         # get the matching textpull for that clip
-        db_text = scoped_session.query(TextPull).filter(TextPull.clip_id == db_clip.clip_id).first()
+        db_text = db.session.query(TextPull).filter(TextPull.clip_id == db_clip.clip_id).first()
 
         # we have to split the lines up into pieces so we can insert them properly
         # if it is a solid string - we lose our hard returns
@@ -73,9 +70,6 @@ def create_slide_deck(template, clips):
             for para in split_text[start_line+1:]:
                 p = text_frame.add_paragraph()
                 p.text = para
-
-    # close scoped session
-    db_session.remove()
 
     prs.save('new-slide-deck.pptx')
 

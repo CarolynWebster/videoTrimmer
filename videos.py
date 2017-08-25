@@ -1,6 +1,6 @@
 """Video and Clip functions"""
 
-from model import db_session, Video, Clip, Transcript, TextPull
+from model import db, Video, Clip, Transcript, TextPull, db_session
 
 import os
 
@@ -11,6 +11,8 @@ import zipfile
 import arrow
 
 import boto3
+
+from flask import url_for
 
 from moviepy.editor import VideoFileClip
 
@@ -50,17 +52,17 @@ def update_vid_status(vid_name):
     print "\n\n\n\n\n\n\n  VIDEO READY \n\n\n\n\n\n\n"
 
     # start db session
-    scoped_session = db_session()
+    # db.session = db_session()
 
     #get the video based on the name
-    vid = scoped_session.query(Video).filter(Video.vid_name == vid_name).first()
+    vid = db.session.query(Video).filter(Video.vid_name == vid_name).first()
 
     #update the status to be ready
     vid.vid_status = 'Ready'
-    scoped_session.commit()
+    db.session.commit()
 
     # close the scoped session
-    db_session.remove()
+    # db_session.remove()
 
 
 def get_vid_url(name):
@@ -97,10 +99,10 @@ def add_clip_to_db(clip, clip_name_base, file_ext, vid_id, user_id, trim_method)
     key_name = clip_name[clip_name.rfind('/')+1:]
 
     # start connection with db
-    scoped_session = db_session()
+    # db.session = db_session()
 
     #check if the clip exists already
-    clip_check = scoped_session.query(Clip).filter(Clip.clip_name == key_name).first()
+    clip_check = db.session.query(Clip).filter(Clip.clip_name == key_name).first()
 
     if clip_check is None or clip_check.clip_status != "Ready":
         # add the clip to our db
@@ -110,18 +112,18 @@ def add_clip_to_db(clip, clip_name_base, file_ext, vid_id, user_id, trim_method)
             db_clip = Clip(vid_id=vid_id, start_pl=clip[0], end_pl=clip[1], created_by=user_id, clip_name=key_name)
 
         # add the new clip instance to the db and commit
-        scoped_session.add(db_clip)
-        scoped_session.commit()
+        db.session.add(db_clip)
+        db.session.commit()
 
         clip_id = db_clip.clip_id
 
-        db_session.remove()
+        # db_session.remove()
         # we return the clip if we made one
         # None is returned if clip existed already
         return clip_id
 
     # close down db session
-    db_session.remove()
+    # db_session.remove()
 
     # return None if clip existed already
     return None
@@ -153,7 +155,7 @@ def pull_text(clips, vid_id):
 
     # list to hold all pull tuples
     all_pulls = []
-
+    print "\n\n\n\n\n", db.session, "\n\n\n\n\n"
     # get the transcript for the selected video
     transcript = scoped_session.query(Transcript).filter(Transcript.vid_id == vid_id).first()
 
@@ -223,7 +225,7 @@ def make_clips(file_loc, clips, vid_id, user_id):
         # save the clip to our temp file location
         new_clip.write_videofile(clip_path, codec="libx264")
 
-    db_session.remove()
+    # db_session.remove()
     #establish session with aws
     s3session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
     s3 = s3session.resource('s3')
@@ -254,6 +256,8 @@ def file_done(vid_name):
     # update status and commit the change to the db
     clip.clip_status = 'Ready'
     scoped_session.commit()
+    
+    # close the session
     db_session.remove()
 
 
@@ -368,20 +372,20 @@ def delete_all_files(clips, vid_type):
     s3 = s3session.resource('s3')
     bucket = s3.Bucket(BUCKET_NAME)
 
-    scoped_session = db_session()
+    # db.session = db_session()
 
     # go through all clip/video ids and delete accordingly
     for clip in clips:
         if vid_type == "clip":
             #use the clip_id part of the tuple to get the clip obj to delete
-            file_to_del = scoped_session.query(Clip).get(clip[1])
+            file_to_del = db.session.query(Clip).get(clip[1])
 
             # add the clip name to a list of clips to be deleted from aws
             delete_aws.append({'Key': clip[0]})
 
         # we have to delete clip tags, clip, and then the video if it's a video
         if vid_type == "video":
-            file_to_del = scoped_session.query(Video).get(clip.vid_id)
+            file_to_del = db.session.query(Video).get(clip.vid_id)
 
             # get any clips associated with this video - list of clip objs
             clips = file_to_del.clips
@@ -394,11 +398,11 @@ def delete_all_files(clips, vid_type):
             delete_aws.append({'Key': file_to_del.vid_name})
 
         # delete the originally selected file
-        scoped_session.delete(file_to_del)
-        scoped_session.commit()
+        db.session.delete(file_to_del)
+        db.session.commit()
 
     # close session
-    db_session.remove()
+    # db_session.remove()
 
     # delete the files from aws
     response = bucket.delete_objects(Delete={'Objects': delete_aws})

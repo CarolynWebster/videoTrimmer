@@ -4,6 +4,8 @@ from flask_sqlalchemy import SQLAlchemy
 
 from datetime import datetime
 
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
@@ -217,6 +219,24 @@ class TextPull(db.Model):
 
         return "TextPull tp_id={} clip_name ={}>".format(self.tp_id, self.clip_id)
 
+def seed_defaults():
+    """Create DEFAULT case and default tags"""
+
+    # add the admin user
+    admin = User(email=os.environ['ADMIN_EMAIL'], password=os.environ['ADMIN_PASS'], fname="Admin", lname="Name")
+    db.session.add(admin)
+    db.session.commit()
+
+    default_case = Case(owner_id=admin.user_id, case_name="DEFAULT")
+    db.session.add(default_case)
+    db.session.commit()
+
+    defTag1 = Tag(case_id=default_case.case_id, tag_name="Opening")
+    defTag2 = Tag(case_id=default_case.case_id, tag_name="Closing")
+    defTag3 = Tag(case_id=default_case.case_id, tag_name="Expert")
+    defTag4 = Tag(case_id=default_case.case_id, tag_name="Damages")
+    db.session.add_all([defTag1, defTag2, defTag3, defTag4])
+    db.session.commit()
 
 def example_data():
     """Create some sample data."""
@@ -224,6 +244,7 @@ def example_data():
     # In case this is run more than once, empty out existing data
     Clip.query.delete()
     UserCase.query.delete()
+    Tag.query.delete()
     Video.query.delete()
     Case.query.delete()
     User.query.delete()
@@ -245,8 +266,9 @@ def example_data():
     usercase1 = UserCase(case_id=case1.case_id, user_id=sally.user_id)
     usercase2 = UserCase(case_id=case1.case_id, user_id=jane.user_id)
     usercase3 = UserCase(case_id=case2.case_id, user_id=sally.user_id)
+    usercase4 = UserCase(case_id=case1.case_id, user_id=bob.user_id)
 
-    db.session.add_all([usercase1, usercase2, usercase3])
+    db.session.add_all([usercase1, usercase2, usercase3, usercase4])
     db.session.commit()
 
     vid1 = Video(case_id=case1.case_id, vid_name="Test Video 1", added_by=bob.user_id, added_at=datetime.now(), vid_status='Ready', deponent="Sierra Chappell")
@@ -268,6 +290,13 @@ def example_data():
 
     db.session.add_all([tag1, tag2])
     db.session.commit()
+
+    # seed the default data
+    seed_defaults()
+
+    cases = Case.query.all()
+    users = User.query.all()
+
 
 ##############################################################################
 # Helper functions

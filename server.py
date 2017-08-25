@@ -14,7 +14,7 @@ from functools import wraps
 
 from flask_debugtoolbar import DebugToolbarExtension
 
-from model import db, connect_to_db, User, Video, Case, UserCase, Clip, Tag, db_session, Transcript
+from model import db, connect_to_db, User, Video, Case, UserCase, Clip, Tag, Transcript
 
 from datetime import datetime
 
@@ -112,6 +112,7 @@ def show_case_vids(case_id):
     user_permitted = validate_usercase(case_id, g.current_user.user_id)
 
     if user_permitted:
+        print "\n\n\n\n\n", "passed user permitted", "\n\n\n\n\n"
         # get all videos that match the provided case_id
         vids = Video.query.filter(Video.case_id == case_id).all()
 
@@ -495,9 +496,9 @@ def handle_clips():
         # stitch clip and create deck are only availble for clips
         # the true is to trigger the stitch function
         if func_to_perform == 'stitchClips':
-            download_all_files(req_clips, vid_name, g.current_user, vid_type, True)
+            download_all_files(req_clips, folder_name, g.current_user, vid_type, True)
         elif func_to_perform == 'createDeck':
-            make_clip_ppt(req_clips, vid_name, g.current_user)
+            make_clip_ppt(req_clips, folder_name, g.current_user)
 
         # return redirect('/clips/{}'.format(vid_id))
 
