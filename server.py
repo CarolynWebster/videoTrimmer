@@ -208,7 +208,7 @@ def add_users_to_case():
     user_emails = user_emails.split(",")
 
     # start the return string with a <tr> tag
-    update_users = "<tr>"
+    update_users = ""
 
     # loop through the emails
     for email in user_emails:
@@ -220,12 +220,14 @@ def add_users_to_case():
         # update_usercase returns None if the usercase is new
         case_user_check = update_usercase(case_id, user_check.user_id)
 
+        close_btn = '<td><button type="button" id="'+ str(user_check.user_id) + '" class="close new-user-x" aria-label="Close"><span aria-hidden="true">&times;</span></button></td>'
+
         # if it's a new assocation - add it as a <td> to response string
         if case_user_check is None:
-            update_users = update_users + "<td>"+email+"</td>"
+            update_users = update_users + "<tr id ='User_" + str(user_check.user_id) + "'>" + close_btn + "<td>"+user_check.fname + " " + user_check.lname +"</td>" + "<td>"+email+"</td> </tr>"
 
     # add the closing row tag once all the tds are done
-    update_users = update_users + "</tr>"
+    # update_users = update_users + "</tr>"
 
     return update_users
 
@@ -333,11 +335,11 @@ def add_tags_to_case():
     case_id = request.form.get('case_id')
     tags = request.form.get('new_tags')
 
-    #nix any spaces
-    tags = tags.replace(" ", "")
+    # #nix any spaces
+    # tags = tags.replace(" ", "")
 
     #split up the emails
-    tags = tags.split(",")
+    tags = tags.split(", ")
 
     for tag in tags:
         add_tags(tag, case_id)
@@ -494,6 +496,8 @@ def handle_clips():
     # get vid_type to know if we are working with full videos or clips
     vid_type = request.form.get('vid_type')
 
+    curr_time = request.form.get('curr_time')
+
     # req_clips = []
 
     if vid_type == "clip":
@@ -513,7 +517,7 @@ def handle_clips():
         if func_to_perform == 'stitchClips':
             download_all_files(req_clips, folder_name, g.current_user, vid_type, True)
         elif func_to_perform == 'createDeck':
-            make_clip_ppt(req_clips, folder_name, g.current_user)
+            make_clip_ppt(req_clips, folder_name, g.current_user, curr_time)
 
         # return redirect('/clips/{}'.format(vid_id))
 

@@ -63,7 +63,8 @@
         $.post('/add-usercase', formInputs, function (results) {
             //refresh the page after adding users
             $('#user-table').append(results)
-            console.log(results)
+            $('.new-user-x').on('click', deleteUser)
+            $('#new_users_input').val('');
         });
     }
     $('#add_users').on('click', updateUsers)

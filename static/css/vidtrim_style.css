@@ -1,0 +1,20 @@
+.btn-circle {
+  width: 30px;
+  height: 30px;
+  text-align: center;
+  padding: 3px 0;
+  font-size: 12px;
+  line-height: 1.428571429;
+  border-radius: 15px;
+}
+
+.tag-btn {
+    background-color: #42bcf4;
+    border-radius: 8px;
+    width: 100px;
+    text-align: left;
+}
+
+button, i {
+  text-align: right;
+}

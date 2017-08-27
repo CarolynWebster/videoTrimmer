@@ -14,7 +14,7 @@ import boto3
 
 from flask import url_for
 
-from moviepy.editor import VideoFileClip
+from moviepy.editor import *
 
 from ppt import create_slide_deck, find_text_by_page_line
 
@@ -52,17 +52,17 @@ def update_vid_status(vid_name):
     print "\n\n\n\n\n\n\n  VIDEO READY \n\n\n\n\n\n\n"
 
     # start db session
-    # db.session = db_session()
+    scoped_session = db_session()
 
     #get the video based on the name
-    vid = db.session.query(Video).filter(Video.vid_name == vid_name).first()
+    vid = scoped_session.query(Video).filter(Video.vid_name == vid_name).first()
 
     #update the status to be ready
     vid.vid_status = 'Ready'
-    db.session.commit()
+    scoped_session.commit()
 
     # close the scoped session
-    # db_session.remove()
+    db_session.remove()
 
 
 def get_vid_url(name):
@@ -265,7 +265,7 @@ def file_done(vid_name):
 
 DEFAULT_TEMP = 'static/ppt_temps/Gray_temp.pptx'
 
-def make_clip_ppt(clips, vid_name, user):
+def make_clip_ppt(clips, vid_name, user, curr_time):
     """Create a ppt using the clips"""
 
     # connect to aws
@@ -288,7 +288,7 @@ def make_clip_ppt(clips, vid_name, user):
         # add file path to the list
         clips_for_ppt.append(save_loc)
 
-    create_slide_deck(DEFAULT_TEMP, clips_for_ppt)
+    create_slide_deck(DEFAULT_TEMP, clips_for_ppt, vid_name, curr_time)
 
 
 def download_all_files(clips, vid_name, user, vid_type, stitch=False):

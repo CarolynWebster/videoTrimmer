@@ -1,5 +1,6 @@
 from pptx import Presentation
 from pptx.util import Inches, Pt
+from pptx.enum.text import MSO_AUTO_SIZE
 
 import re
 
@@ -12,14 +13,16 @@ vid_VP = Inches(1.91)
 vid_HP = Inches(.41)
 
 # set video width and height
-vid_H = Pt(240)
-vid_W = Pt(320)
+vid_H = Inches(2.82)
+vid_W = Inches(3.77)
 
-def create_slide_deck(template, clips):
+def create_slide_deck(template, clips, vid_name, curr_time):
     """Creates a slide deck of selected clips"""
 
     # create a new presentation
     prs = Presentation(template)
+
+    pres_name = vid_name + "_" + curr_time + ".pptx"
 
     # make a new slide for each clip
     for clip in clips:
@@ -55,8 +58,13 @@ def create_slide_deck(template, clips):
         if txt.has_text_frame:
             # find the text frame in the placeholder
             text_frame = txt.text_frame
-            # id the paragraphics
+
+            # set text frame to be auto-sizing
+            text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
+
+            # id the paragraphs
             p = text_frame.paragraphs[0]
+
             # entries starting with a Q. or A. have a blank space at the start
             # so if the 0th "line" is nothing - start at line 1
             start_line = 0
@@ -71,7 +79,7 @@ def create_slide_deck(template, clips):
                 p = text_frame.add_paragraph()
                 p.text = para
 
-    prs.save('new-slide-deck.pptx')
+    prs.save(pres_name)
 
 
 def find_text_by_time(source):

@@ -1,6 +1,6 @@
 """Tag functions for video trimmer"""
 
-from model import Case, db, Tag, ClipTag
+from model import Case, db, Tag, ClipTag, db_session
 
 from flask import session, flash
 
@@ -39,13 +39,15 @@ def add_tags(tag, case_id):
 def delete_cliptags(clip_id, tag_name):
     """Deletes a tag from a case and any associated clips"""
 
-    tag_id = db.session.query(Tag.tag_id).filter(Tag.tag_name == tag_name)
+    scoped_session = db_session()
+
+    tag_id = scoped_session.query(Tag.tag_id).filter(Tag.tag_name == tag_name)
 
     # get the cliptag object to be deleted
-    cliptag = db.session.query(ClipTag).filter(ClipTag.clip_id == clip_id,
+    cliptag = scoped_session.query(ClipTag).filter(ClipTag.clip_id == clip_id,
                                    ClipTag.tag_id == tag_id).first()
     # delete the cliptag
-    db.session.delete(cliptag)
-    db.session.commit()
+    scoped_session.delete(cliptag)
+    scoped_session.commit()
 
     return "Success"

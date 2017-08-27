@@ -4,6 +4,8 @@ from model import Case, db, UserCase, User
 
 from flask import session, flash
 
+from gmail import send_email
+
 
 def validate_usercase(case_id, user_id):
     """Validate is user is permitted access to a specifc case"""
@@ -25,6 +27,8 @@ def update_usercase(case_id, user_id):
     if case_user_check is None:
         #create an association in the usercases table
         user_case = UserCase(case_id=case_id, user_id=user_id)
+        user = User.query.get(user_id)
+        send_email(user.email, None, "add_to_case")
         db.session.add(user_case)
         db.session.commit()
 
@@ -85,6 +89,8 @@ def get_user_by_email(email):
         #they can add their password and name when they officially register
         # make all emails lowercase to reduce doubled entries
         user_check = User(email=email.lower())
+        # send email to notify user they have been added
+        send_email(email, None, "new_user")
         #prime user to be added to db
         db.session.add(user_check)
         #commit user to db

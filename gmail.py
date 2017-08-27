@@ -32,15 +32,19 @@ def create_message(sender, to, subject, message_text):
     return message.as_string()
 
 
-def send_email(recipient, file_url):
+def send_email(recipient, file_url, email_type):
     """Sends user a notification email"""
 
     # set up email content
     sent_from = gmail_user
     to = recipient
     subject = 'Update from Cut To The Point'
-    body = 'Hey, Your video is ready! Here is a link <a href=http://localhost:5000{}>to download</a>'.format(file_url)
-
+    if email_type == "file_notice": 
+        body = 'Hey, Your video is ready! Here is a link <a href=http://localhost:5000{}>to download</a>'.format(file_url)
+    elif email_type == "new_user":
+        body = 'Welcome. You have been invited to collaborate on a new case on Cut To The Point. \n Please <a href="http://localhost:5000/register">register a new account</a> to access the materials for this case.'
+    elif email_type == "add_to_case":
+        body = 'You have been invited to collaborate on a new case on Cut To The Point. \n Visit <a href="http://localhost:5000/cases">your cases</a> to access the materials for this case. Welcome to the team!'
     # create a message
     email_text = create_message(sent_from, to, subject, body)
 
