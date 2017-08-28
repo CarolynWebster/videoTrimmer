@@ -38,10 +38,9 @@ def upload_aws_db(video_file, video_name, case_id, user_id, BUCKET_NAME=BUCKET_N
     #start a connection with aws
     session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
     s3 = session.resource('s3')
-
     # Put the video on aws
     s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file)
-
+    print "\n\n\n\n\n\n\n UPLOAD DONE \n\n\n\n\n\n\n"
     # once the upload is complete - update the db status
     update_vid_status(video_name)
 

@@ -37,7 +37,7 @@ class User(db.Model):
     def __repr__(self):
         """Provide userful user information"""
 
-        return "<User user_id={} email={} name={} {}>".format(self.user_id, 
+        return "<User user_id={} email={} name={} {}>".format(self.user_id,
                                                               self.email,
                                                               self.fname,
                                                               self.lname)
@@ -95,6 +95,7 @@ class Zip(db.Model):
         """useful zip info"""
 
         return "<Zip zip_id={} name={}>".format(self.zip_id, self.zip_name)
+
 
 class Video(db.Model):
     """A full video"""

@@ -17,7 +17,6 @@ def get_tags(case_id):
     # return a list of tags
     return tags
 
-
 def add_tags(tag, case_id):
     """Adds a tag to a case"""
 

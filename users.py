@@ -13,7 +13,6 @@ def validate_usercase(case_id, user_id):
     # check if the usercase exists already
     case_user_check = db.session.query(UserCase).filter(UserCase.case_id == case_id,
                                                      UserCase.user_id == user_id).first()
-    print session['user_id'], case_user_check, "\n\n\n\n\n\n"
     return case_user_check
 
 

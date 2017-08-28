@@ -112,7 +112,6 @@ def show_case_vids(case_id):
     user_permitted = validate_usercase(case_id, g.current_user.user_id)
 
     if user_permitted:
-        print "\n\n\n\n\n", "passed user permitted", "\n\n\n\n\n"
         # get all videos that match the provided case_id
         vids = Video.query.filter(Video.case_id == case_id).all()
 
@@ -220,7 +219,7 @@ def add_users_to_case():
         # update_usercase returns None if the usercase is new
         case_user_check = update_usercase(case_id, user_check.user_id)
 
-        close_btn = '<td><button type="button" id="'+ str(user_check.user_id) + '" class="close new-user-x" aria-label="Close"><span aria-hidden="true">&times;</span></button></td>'
+        close_btn = '<td><button type="button" id="' + str(user_check.user_id) + '" class="close new-user-x" aria-label="Close"><span aria-hidden="true">&times;</span></button></td>'
 
         # if it's a new assocation - add it as a <td> to response string
         if case_user_check is None:
@@ -420,9 +419,11 @@ def upload_video():
     # otherwise register user in db
     if request.method == "POST":
         """Uploads video to aws"""
-
+        print "\n\n\n\n\n\n\n", request, "\n\n\n\n\n\n"
+        video_file = request.files['media']
+        print "\n\n\n\n\n\n\n", video_file, "\n\n\n\n\n\n"
         case_id = request.form.get('case_id')
-        video_file = request.files.get("rawvid")
+        # video_file = request.files.get("rawvid")
         video_name = video_file.filename
         try:
             transcript_file = request.files.get("tscript")
@@ -452,7 +453,7 @@ def upload_video():
         # send the upload to a separate thread to upload while the user moves on
         upload = threading.Thread(target=upload_aws_db, args=(video_file, video_name, case_id, user_id)).start()
 
-        return redirect('/cases/'+str(case_id))
+        return jsonify(case_id)
 
 
 @app.route('/show-video/<vid_id>')
