@@ -638,9 +638,18 @@ def show_all_clips(vid_id):
         clips = Clip.query.filter(Clip.vid_id == vid_id).all()
 
         for clip in clips:
+            # get the clip duration
+            # if the time includes milliseconds - trim them off
+            start_time = clip.start_at
+            if len(start_time) > 8:
+                start_time = start_time[:-4]
 
-            start_at = datetime.strptime(clip.start_at[:-4], '%H:%M:%S')
-            end_at = datetime.strptime(clip.end_at[:-4], '%H:%M:%S')
+            end_time = clip.end_at
+            if len(end_time) > 8:
+                end_time = end_time[:-4]
+
+            start_at = datetime.strptime(start_time, '%H:%M:%S')
+            end_at = datetime.strptime(end_time, '%H:%M:%S')
             clip.duration = end_at - start_at
 
         # get the tags for this case and the default tags

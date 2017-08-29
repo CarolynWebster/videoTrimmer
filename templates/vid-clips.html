@@ -11,6 +11,7 @@
 <a href="/show-video/{{ main_vid.vid_id }}" target='_blank'><button>Show video</button></a>
 <a href="/trim-video/{{ main_vid.vid_id }}"><button>Trim new clips</button></a>
 <div id='alerts'><div class="alert alert-success alert-dismissable" id="success-message"><a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a><strong>Success!</strong> Your request has been sent.</div></div>
+<input type="text" id="table-search" onkeyup="filterTable()" placeholder="Search...">
 <table data-toggle="table" class="table table-sortable" id="clip-table">
     <tr>
         <th><input type='checkbox' class='cbox' id="select-all"></th>

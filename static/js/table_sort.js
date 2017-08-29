@@ -54,3 +54,25 @@
         }
       }
     }
+
+
+    function filterTable() {
+      // Declare variables 
+      var input, filter, table, tr, td, i;
+      input = document.getElementById("table-search");
+      filter = input.value.toUpperCase();
+      table = document.getElementById("clip-table");
+      tr = table.getElementsByTagName("tr");
+      all_rows = document.querySelector("#clip-table").rows
+      // Loop through all table rows, and hide those who don't match the search query
+      for (i = 1; i < all_rows.length; i++) {
+          row_cells = all_rows[i].cells
+          for (var j = 1; j < 8; j++){
+            if (row_cells[j].textContent.toUpperCase().indexOf(filter) > -1) {
+              all_rows[i].style.display = "";
+            } else {
+              all_rows[i].style.display = "none";
+            }
+          }
+        } 
+    }
