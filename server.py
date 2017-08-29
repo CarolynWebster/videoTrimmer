@@ -16,7 +16,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 
 from model import db, connect_to_db, User, Video, Case, UserCase, Clip, Tag, Transcript
 
-from datetime import datetime
+from datetime import datetime, time, timedelta
 
 import os
 
@@ -26,7 +26,7 @@ from cases import create_case
 
 from users import update_usercase, create_user, validate_usercase, get_user_by_email
 
-from tags import get_tags, add_tags, delete_cliptags
+from tags import get_tags, add_tags, delete_cliptags, get_tag_count
 
 from videos import upload_aws_db, download_from_aws, get_vid_url
 from videos import add_clip_to_db, make_clip_ppt, download_all_files, delete_all_files
@@ -184,7 +184,13 @@ def show_case_settings(case_id):
         # get the tags for this case and the default tags
         tags = get_tags(case_id)
 
-        return render_template('case-settings.html', users=users, case_id=case_id, tags=tags, owner=owner)
+        tag_counts = {}
+
+        for tag in tags:
+            tag_counts[tag.tag_name] = get_tag_count(tag, case_id)
+
+        print tag_counts
+        return render_template('case-settings.html', users=users, case_id=case_id, tags=tags, owner=owner, tag_counts=tag_counts)
     else:
         flash("You don't have permission to view that case")
         return redirect('/cases')
@@ -369,10 +375,10 @@ def add_cliptags():
 
     #get clip id and tag from request
     clip_id = request.form.get('clip_id')
-    req_tag = request.form.get('tag')
+    req_tag = request.form.get('tag_id')
 
     #get the tag obj that matches the requested tag
-    tag = Tag.query.filter(Tag.tag_name == req_tag).first()
+    tag = Tag.query.get(req_tag)
     clip = Clip.query.get(clip_id)
 
     #check if that tag is associated with that clip already
@@ -381,7 +387,7 @@ def add_cliptags():
         clip.tags.append(tag)
         db.session.commit()
 
-        response = {'tag': tag.tag_name, 'clip_id': clip_id}
+        response = {'tag_id': tag.tag_id, 'tag_name': tag.tag_name, 'clip_id': clip_id}
         #return the tag to be added to the html
         return jsonify(response)
 
@@ -391,13 +397,10 @@ def remove_cliptag():
 
     #get clip id and tag from request
     clip_id = request.form.get('clip_id')
-    req_tag = request.form.get('tag')
+    req_tag = request.form.get('tag_id')
 
-    result = delete_cliptags(clip_id, req_tag)
+    return delete_cliptags(clip_id, req_tag)
     
-    # "Success" message is sent if successful
-    if result:
-        return result
 
 
 # VIDEO ------------------------------------------------------------------------
@@ -633,6 +636,12 @@ def show_all_clips(vid_id):
 
     if user_permitted:
         clips = Clip.query.filter(Clip.vid_id == vid_id).all()
+
+        for clip in clips:
+
+            start_at = datetime.strptime(clip.start_at[:-4], '%H:%M:%S')
+            end_at = datetime.strptime(clip.end_at[:-4], '%H:%M:%S')
+            clip.duration = end_at - start_at
 
         # get the tags for this case and the default tags
         tags = get_tags(main_vid.case_id)

@@ -15,30 +15,32 @@
     <tr>
         <th><input type='checkbox' class='cbox' id="select-all"></th>
         <th onclick="sortTable(1)">Clip name <span class='glyphicon glyphicon-sort'></span></th>
-        <th onclick="sortTable(2)" >Start <span class='glyphicon glyphicon-sort'></span></th>
-        <th onclick="sortTable(3)">End <span class='glyphicon glyphicon-sort'></span></th>
-        <th onclick="sortTable(4)">Status <span class='glyphicon glyphicon-sort'></span></th>
-        <th onclick="sortTable(5)">Created by <span class='glyphicon glyphicon-sort'></span></th>
-        <th onclick="sortTable(6)">Tags <span class='glyphicon glyphicon-sort'></span></th>
+        <th onclick="sortTable(2)">Duration<span class='glyphicon glyphicon-sort'></span></th>
+        <th onclick="sortTable(3)" >Start <span class='glyphicon glyphicon-sort'></span></th>
+        <th onclick="sortTable(4)">End <span class='glyphicon glyphicon-sort'></span></th>
+        <th onclick="sortTable(5)">Status <span class='glyphicon glyphicon-sort'></span></th>
+        <th onclick="sortTable(6)">Created by <span class='glyphicon glyphicon-sort'></span></th>
+        <th>Tags <span class='glyphicon glyphicon-sort'></span></th>
     </tr>
     {% for clip in clips %}
     <tr>
         <td><input type='checkbox' class='vidcheck' value={{ clip.clip_id }}></td>
         <!-- list value first for sorting purposes-->
         <td><a value="{{ clip.clip_name }}"  href = '/show-clip/{{ clip.clip_id }}' target='_blank'>{{ clip.clip_name }}</a></td>
+        <td>{{ clip.duration }}</td>
         <td>{{ clip.start_at }}</td>
         <td>{{ clip.end_at }}</td>
         <td>{{ clip.clip_status }}</td>
         <td>{{ clip.user.fname }} {{ clip.user.lname }}</td>
         <td id='tagtd_{{ clip.clip_id }}'>
             {% for ct in clip.clip_tags %}
-                <button class="tag-btn cbox" value='{{ ct.tag.tag_name }}_{{ clip.clip_id }}' id='{{ ct.tag.tag_name }}_{{ clip.clip_id }}'>{{ ct.tag.tag_name }}<i class="glyphicon glyphicon-remove"></i></button>
+                <button class="tag-btn cbox" value='{{ ct.tag.tag_id }}_{{ clip.clip_id }}' id='{{ ct.tag.tag_id }}_{{ clip.clip_id }}'>{{ ct.tag.tag_name }}<i class="glyphicon glyphicon-remove"></i></button>
             {% endfor %}
         </td>
         <td><select id='sel_{{ clip.clip_id }}'>
                 <option value="None">Select tag</option>
                 {% for tag in tags %}
-                  <option value="{{ tag.tag_name }}">{{ tag.tag_name }}</option>
+                  <option value="{{ tag.tag_id }}">{{ tag.tag_name }}</option>
                 {% endfor %}
             </select>
             <button class='casetag' id='{{ clip.clip_id }}'>Add</button></td>
@@ -172,19 +174,19 @@ $('#select-all').on('change', toggleChecks)
         //get the tag name and clipid from the button id
         var clipIdTarget = evt.currentTarget.id;
         var tagInfo = clipIdTarget.split('_');
-        var tagName = tagInfo[0];
+        var tagId = tagInfo[0];
         var clipId = tagInfo[1];
 
         tagInputs = {
           'clip_id': clipId,
-          'tag': tagName
+          'tag_id': tagId
         }
 
         $.post('/remove-cliptag', tagInputs, function(results) {
-          console.log(results)
-          if (results === "Success"){
-            $("#"+clipIdTarget).remove();
-          }
+          console.log(results, clipIdTarget)
+            //delete the appropriate tag btn
+            var tagClipId = results.tag_id+"_"+results.clip_id
+            $('#'+tagClipId).remove()
         });
       }
     }
@@ -193,16 +195,15 @@ $('#select-all').on('change', toggleChecks)
         var clipIdTarget = evt.currentTarget.id;
         var selTarget = '#sel_' + clipIdTarget;
         var tdTarget = '#tagtd_' + clipIdTarget;
-        var selectedTag = 
         tagInputs = {
             'clip_id': clipIdTarget,
-            'tag': $(selTarget).val()
+            'tag_id': $(selTarget).val()
         };
         $.post('/add-cliptags', tagInputs, function (results) {
             console.log(results)
-            // returns {tag, clip_id}
-            var tagClipId = results.tag+"_"+results.clip_id
-            var tagBtn = "<button class='tag-btn' value='"+tagClipId+"' id='"+tagClipId+"'>"+results.tag+"<i class='glyphicon glyphicon-remove'></i></button>"
+            // returns dict with {tag_id, clip_id, tag_name}
+            var tagClipId = results.tag_id+"_"+results.clip_id
+            var tagBtn = "<button class='tag-btn' value='"+tagClipId+"' id='"+tagClipId+"'>"+results.tag_name+"<i class='glyphicon glyphicon-remove'></i></button>"
             $(tdTarget).append(tagBtn)
             //add event listener to new btn
             $('#'+tagClipId).on('click', removeTag)

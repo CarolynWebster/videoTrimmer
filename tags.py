@@ -2,7 +2,7 @@
 
 from model import Case, db, Tag, ClipTag, db_session
 
-from flask import session, flash
+from flask import session, flash, jsonify
 
 
 def get_tags(case_id):
@@ -16,6 +16,23 @@ def get_tags(case_id):
 
     # return a list of tags
     return tags
+
+
+def get_tag_count(tag, case_id):
+    """Returns total number of clips with the provided tag in provided case"""
+
+    # get all the clips with that tag
+    clips = tag.clips
+
+    clip_count = 0
+    print tag.tag_name, tag.tag_id
+    for clip in clips:
+        print "\t", clip, clip.video.case_id
+        if clip.video.case_id == int(case_id):
+            clip_count += 1
+
+    return clip_count
+
 
 def add_tags(tag, case_id):
     """Adds a tag to a case"""
@@ -35,18 +52,22 @@ def add_tags(tag, case_id):
         db.session.commit()
 
 
-def delete_cliptags(clip_id, tag_name):
+def delete_cliptags(clip_id, tag_id):
     """Deletes a tag from a case and any associated clips"""
 
     scoped_session = db_session()
 
-    tag_id = scoped_session.query(Tag.tag_id).filter(Tag.tag_name == tag_name)
+    # tag = scoped_session.query(Tag).get(tag_id)
+
+    print "\n\n\n\n\n\n", tag_id, clip_id, "\n\n\n\n\n"
 
     # get the cliptag object to be deleted
-    cliptag = scoped_session.query(ClipTag).filter(ClipTag.clip_id == clip_id,
-                                   ClipTag.tag_id == tag_id).first()
+    cliptag = scoped_session.query(ClipTag).filter(ClipTag.clip_id == clip_id, 
+                                                   ClipTag.tag_id == tag_id).first()
     # delete the cliptag
     scoped_session.delete(cliptag)
     scoped_session.commit()
 
-    return "Success"
+    response = {'tag_id': tag_id, 'clip_id': clip_id}
+
+    return jsonify(response)
