@@ -118,6 +118,9 @@ def show_case_vids(case_id):
         # get the case object for the provided case_id
         this_case = Case.query.get(case_id)
 
+        for vid in vids:
+            vid.recorded_at = datetime.strftime(vid.recorded_at, '%Y-%m-%d')
+
         return render_template('case-vids.html', videos=vids, case=this_case)
     else:
         flash("You don't have permission to view that case")
@@ -556,6 +559,9 @@ def trim_video(vid_id):
     vid_name = vid_to_trim.vid_name
     case_id = vid_to_trim.case.case_id
 
+    has_transcript = False
+    if vid_to_trim.transcript:
+        has_transcript = True
     # check if user is permitted to see this content
     user_permitted = validate_usercase(case_id, g.current_user.user_id)
 
@@ -563,7 +569,8 @@ def trim_video(vid_id):
         # get temporary url
         url = get_vid_url(vid_name)
 
-        return render_template('trim-form.html', vid_id=vid_id, orig_vid=vid_name, vid_url=url)
+        return render_template('trim-form.html', vid_id=vid_id, orig_vid=vid_name, 
+                                vid_url=url, has_transcript=has_transcript)
     else:
         flash("You don't have permission to view that case")
         return redirect('/cases')
@@ -640,17 +647,20 @@ def show_all_clips(vid_id):
         for clip in clips:
             # get the clip duration
             # if the time includes milliseconds - trim them off
-            start_time = clip.start_at
-            if len(start_time) > 8:
-                start_time = start_time[:-4]
+            if clip.start_at is not None:
+                start_time = clip.start_at
+                if len(start_time) > 8:
+                    start_time = start_time[:-4]
 
-            end_time = clip.end_at
-            if len(end_time) > 8:
-                end_time = end_time[:-4]
+                end_time = clip.end_at
+                if len(end_time) > 8:
+                    end_time = end_time[:-4]
 
-            start_at = datetime.strptime(start_time, '%H:%M:%S')
-            end_at = datetime.strptime(end_time, '%H:%M:%S')
-            clip.duration = end_at - start_at
+                start_at = datetime.strptime(start_time, '%H:%M:%S')
+                end_at = datetime.strptime(end_time, '%H:%M:%S')
+                clip.duration = end_at - start_at
+            else:
+                clip.duration = '--'
 
         # get the tags for this case and the default tags
         tags = get_tags(main_vid.case_id)

@@ -18,8 +18,11 @@
     </video>
     <br/>
     <form action="/make-clips" method="POST" id='clip_info'>
-        <input type='radio' name='trim_method' value='time'>Using timecodes (HH:MM:SS-HH:MM:SS)<br/>
-        <input type='radio' name='trim_method' value='page' checked>Using Page and Line numbers (PP:LL-PP:LL)<br/><br/>
+        <input type='radio' name='trim_method' value='time' checked>Using timecodes (HH:MM:SS-HH:MM:SS)<br/>
+        {% if has_transcript %}
+        <input type='radio' name='trim_method' value='page' checked>Using Page and Line numbers (PP:LL-PP:LL)
+        {% endif %}
+        <br/><br/>
         <input type='hidden' name="vid_id" value={{ vid_id }}>
         <textarea name="clip-list" form="clip_info" cols = 60 placeholder="Page Line: 13:16-14:8 OR Timecode:00:18:04-00:22:20, 01:06:12-01:12:12" required></textarea>
         <input type='submit' value="Create Clips">

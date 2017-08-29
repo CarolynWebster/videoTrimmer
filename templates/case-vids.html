@@ -1,35 +1,65 @@
 {% extends 'base.html' %}
 {% block title %}Case List{% endblock %}
 
+{% block addToHead %}
+    <script src="https://use.fontawesome.com/d24120a7b5.js"></script>
+{% endblock %}
+
 {% block content %}
 <h1>Case name: {{ case.case_name }}</h1>
 <p><a href='/case-settings/{{ case.case_id}}'>Case settings</a></p>
 <a href="/upload-video?case_id={{ case.case_id }}"><button>Upload a new video</button></a>
+<input type="text" id="table-search" onkeyup="filterTable(5)" placeholder="Search...">
 <table data-toggle="table" class="table table-sortable" id="clip-table">
-    <tr>
-        <th><input type='checkbox' id="select-all"></th>
-        <th>Deponent</th>
-        <th>Date recorded</th>
-        <th>Video name</th>
-        <th>Status</th>
-    </tr>
+    <thead>
+        <tr>
+            <th><input type='checkbox' id="select-all"></th>
+            <th onclick="sortTable(1)">Deponent 
+                <span class='glyphicon glyphicon-sort'></span></th>
+            <th onclick="sortTable(2)">Date recorded 
+                <span class='glyphicon glyphicon-sort'></span></th>
+            <th onclick="sortTable(3)">Video name
+                <span class='glyphicon glyphicon-sort'></span></th>
+            <th onclick="sortTable(4)">Status
+                <span class='glyphicon glyphicon-sort'></span></th>
+            <th onclick="sortTable(5)" class='center-column'>Transcript?
+                <span class='glyphicon glyphicon-sort'></span></th>
+            <th class='center-column'>Trim new</th>
+            <th class='center-column'>See existing</th>
+
+        </tr>
+    </thead>
     {% for video in videos %}
-    <tr>
-        <!--case name-->
-        <!--video comes in tuples (video[0] = vid_name, video[1] = vid_id, video[2] = vid_status)-->
-        <td><input type='checkbox' class='vidcheck' value={{ video.vid_id }}></td>
-        <td>{{ video.deponent }}</td>
-        <td>{{ video.recorded_at }}</td>
-        <td><a href = '/show-video/{{ video.vid_id }}' target='_blank'>{{ video.vid_name }}</a></td>
-        <td>{{ video.vid_status }}</td>
-        <td><a href = '/trim-video/{{ video.vid_id }}'>Trim new clips</a></td>
-        <td><a href = '/clips/{{ video.vid_id }}'>See existing clips</a></td>
-    </tr>
-    {% endfor %}
+    <tbody>
+        <tr>
+            <!--case name-->
+            <!--video comes in tuples (video[0] = vid_name, video[1] = vid_id, video[2] = vid_status)-->
+            <td><input type='checkbox' class='vidcheck' value={{ video.vid_id }}></td>
+            <td>{{ video.deponent }}</td>
+            <td>{{ video.recorded_at }}</td>
+            <td><a value='{{ video.vid_name }}' href = '/show-video/{{ video.vid_id }}' target='_blank'>{{ video.vid_name }}</a></td>
+            <td>{{ video.vid_status }}</td>
+            <td class='center-column'>
+                {% if video.transcript %}
+                    <i class="fa fa-file-text tscriptTrue" aria-hidden="true"></i>
+                {% else %}
+                    <i class="fa fa-file-text tscriptFalse" aria-hidden="true"></i>
+                {% endif %}
+            </td>
+            <td class='center-column'><a href = '/trim-video/{{ video.vid_id }}'><i class="fa fa-scissors" aria-hidden="true"></i></a></td>
+            <td class='center-column'><a href = '/clips/{{ video.vid_id }}'>
+                <i class="fa fa-film" aria-hidden="true"></i> 
+                <i class="fa fa-search" aria-hidden="true"></i></a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
 
 <button type="button" id='downloadClips' value="Download">Download Videos</button>
 <button type="button" id='deleteClips' value="Delete">Delete Videos</button>
+
+<script src="/static/js/table_sort.js"></script>
 
 <script>
 function collect_checked_vids(evt){

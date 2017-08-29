@@ -6,6 +6,7 @@ $(document).ready(function() {
 
 		var formData = new FormData($('#vid-upload')[0]);
 		formData.append('media', $('#media')[0].files[0]);
+		formData.append('tscript', $('#tscript')[0].files[0]);
 		formData.append('name', $('#name').val());
 		formData.append('date', $('#date-taken').val());
 		formData.append('case_id', $('#case_id').val());
@@ -39,7 +40,7 @@ $(document).ready(function() {
 			processData : false,
 			contentType : false,
 			success : function(case_id) {
-				window.location='/cases/'+case_id
+				window.location='/cases/'+case_id;
 			}
 		});
 

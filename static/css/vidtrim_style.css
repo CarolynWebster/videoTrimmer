@@ -18,3 +18,23 @@
 button, i {
   text-align: right;
 }
+
+.tscriptTrue {
+  color: #033077;
+}
+
+.tscriptFalse {
+  color: #cccccc;
+}
+
+.center-column {
+  text-align: center;
+}
+
+/* Sortable tables */
+table.sortable thead {
+    background-color:#eee;
+    color:#666666;
+    font-weight: bold;
+    cursor: default;
+}

@@ -1,19 +1,11 @@
-<html>
-<head>
-	<title>Upload</title>
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+{% extends 'base.html' %}
+{% block title %}Upload a New Video{% endblock %}
+{% block addToHead %}
 	<script src="/static/js/upload.js"></script>
-
-	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
-
-	<!-- Optional theme -->
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
 
 	<!-- Latest compiled and minified JavaScript -->
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
-</head>
-<body>
+{% endblock %}
 
 <!-- <form method=POST enctype=multipart/form-data id='vid-upload'>
     <input type="text" name="name" id="name" placeholder="Jane Doe"><br/>
@@ -21,11 +13,12 @@
     <input type=file id="media" name=media>
     <input type="submit">
 </form> -->
-
+{% block content %}
 <form enctype="multipart/form-data" method="POST" id='vid-upload'>
     <input type="text" name="name" id="name" placeholder="Jane Doe"><br/>
     <input type="date" name="date-taken" id="date-taken"><br/>
     Video file:<input type="file" name='rawvid' id='media' required><br/>
+    Transcript (txt format): <input type="file" name='tscript' id='tscript'><br/>
     <!-- Text Transcript:<input type="file" name='tscript' id='tscript'></br> -->
     <input type="hidden" name='case_id' id='case_id' value={{ case_id }}>
     <input type="submit" value='Upload'>
@@ -38,5 +31,4 @@
 </div>
 
 </div>
-</body>
-</html>
+{% endblock %}
