@@ -41,9 +41,9 @@
             <td>{{ video.vid_status }}</td>
             <td class='center-column'>
                 {% if video.transcript %}
-                    <i class="fa fa-file-text tscriptTrue" aria-hidden="true"></i>
+                    <i class="fa fa-file-text tscriptTrue" aria-hidden="true" id='{{ video.vid_id }}'></i>
                 {% else %}
-                    <i class="fa fa-file-text tscriptFalse" aria-hidden="true"></i>
+                    <i class="fa fa-file-text tscriptFalse" aria-hidden="true" id='{{ video.vid_id }}'></i>
                 {% endif %}
             </td>
             <td class='center-column'><a href = '/trim-video/{{ video.vid_id }}'><i class="fa fa-scissors" aria-hidden="true"></i></a></td>
@@ -62,6 +62,26 @@
 <script src="/static/js/table_sort.js"></script>
 
 <script>
+
+function showScript(evt) {
+    vid_id = evt.currentTarget.id;
+
+    var params = 'scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no,width=900,height=600,left=-1000,top=-1000';
+
+    window.open('/show-transcript/'+vid_id, 'Transcript', params)
+}
+
+function addScript(evt) {
+    vid_id = evt.currentTarget.id;
+
+    var params = 'scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no,width=900,height=600,left=-1000,top=-1000';
+
+    window.open('/add-transcript/'+vid_id, 'Add Transcript', params)
+}
+
+$('.tscriptTrue').on('click', showScript)
+$('.tscriptFalse').on('click', addScript)
+
 function collect_checked_vids(evt){
 
     //get an array of all the checked clips

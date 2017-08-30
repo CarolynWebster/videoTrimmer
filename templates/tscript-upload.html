@@ -1,0 +1,28 @@
+<html>
+<head>
+    <title>Upload Transcript</title>
+</head>
+<body>
+    <form enctype="multipart/form-data" method="POST" id='script-upload'>
+        Transcript (txt format): <br/>
+        <input type="file" name='tscript' id='tscript'><br/></br>
+        <input type="hidden" name='vid_id' id='vid_id' value={{ vid_id }}>
+        <input type="submit" value='Upload'>
+    </form>
+
+<script>
+    // $('#script-upload').on('submit', function (results) {
+    //     if (results == "Success"){
+    //         window.close();
+    //     }
+    // });
+
+    
+    window.onunload = refreshParent;
+    function refreshParent() {
+        window.opener.location.reload();
+        window.close();
+    }
+</script>
+</body>
+</html>

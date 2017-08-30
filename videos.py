@@ -358,7 +358,7 @@ def download_all_files(clips, vid_name, user, vid_type, stitch=False):
     email_url = url_for('static', filename=zip_url)
 
     # send email to user that their zip is ready
-    send_email(user_email, email_url)
+    send_email(user_email, email_url, 'file_notice')
 
 def delete_all_files(clips, vid_type):
     """Delete selected clips from aws and db"""

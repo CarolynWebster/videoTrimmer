@@ -449,8 +449,6 @@ def upload_video():
         db.session.commit()
 
         if transcript_file:
-            # add the transcript if there is one
-            # we use readlines so we can search it easier
             script_text = transcript_file.readlines()
             new_script = Transcript(vid_id=new_vid.vid_id, text=script_text)
             db.session.add(new_script)
@@ -482,6 +480,56 @@ def show_video(vid_id):
     else:
         flash("You don't have permission to view that case")
         return redirect('/cases')
+
+
+@app.route('/show-transcript/<vid_id>')
+@login_required
+def show_tscript(vid_id):
+    """Shows transcript for selected video"""
+
+    vid = Video.query.get(vid_id)
+    print vid.case_id, g.current_user.user_id
+    user_permitted = validate_usercase(vid.case_id, g.current_user.user_id)
+    
+    if user_permitted:
+        tscript_obj = Transcript.query.filter(Transcript.vid_id == vid_id).first()
+        tscript = tscript_obj.text
+        tscript = tscript.split('\n","\n')
+
+        return render_template('/tscript-preview.html', tscript=tscript, vid_id=vid_id)
+
+@app.route('/add-transcript/<vid_id>', methods=["GET", "POST"])
+@login_required
+def add_tscript(vid_id):
+    """Adds a transcript to a video"""
+
+    if request.method == "GET":
+
+        return render_template('/tscript-upload.html', vid_id=vid_id)
+
+    if request.method == "POST":
+        transcript_file = request.files.get("tscript")
+        # add the transcript if there is one
+        # we use readlines so we can search it easier
+        script_text = transcript_file.readlines()
+        new_script = Transcript(vid_id=vid_id, text=script_text)
+        db.session.add(new_script)
+        db.session.commit()
+
+    return "Success"
+
+
+@app.route('/remove-transcript', methods=["POST"])
+@login_required
+def remove_tscript():
+    """Removes a transcript from a video"""
+    
+    vid_id = request.form.get('vid_id')
+    vid = Video.query.get(vid_id)
+    tscript = Transcript.query.filter(Transcript.vid_id == vid_id).first()
+    db.session.delete(tscript)
+    db.session.commit()
+
 
 
 # CLIPS ------------------------------------------------------------------------

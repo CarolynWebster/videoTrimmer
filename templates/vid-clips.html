@@ -140,11 +140,14 @@ function toggleChecks(evt) {
     console.log(status)
     var all_cboxes = $('.vidcheck:checkbox')
     if (status == true) {
-        console.log("if")
-        all_cboxes.prop('checked', true);
+        //all_cboxes.prop('checked', true);
+        for (var c=0; c < all_cboxes.length; c++) {
+            if (all_cboxes[c].offsetHeight > 0) {
+                all_cboxes[c].checked = true;
+            }
+        }
     }
     else {
-        console.log("else")
         all_cboxes.prop('checked', false);
     }
 

@@ -1,0 +1,25 @@
+<html>
+<head>
+    <title>Transcript</title>
+</head>
+<body>
+    <form method="POST" action='/remove-transcript'>
+        <input type="hidden" id="vid_id" name="vid_id" value="{{ vid_id }}"><br/>
+        <input type='Submit' value="Delete this transcript">
+    </form>
+
+    <pre>
+    {% for line in tscript %}
+        <p class='tscript'>{{ line }}</p>
+    {% endfor %}
+    </pre>
+
+    <script>
+    window.onunload = refreshParent;
+    function refreshParent() {
+        window.opener.location.reload();
+        window.close();
+    }
+    </script>
+</body>
+</html>
