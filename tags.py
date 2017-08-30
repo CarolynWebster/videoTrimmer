@@ -18,20 +18,21 @@ def get_tags(case_id):
     return tags
 
 
-def get_tag_count(tag, case_id):
-    """Returns total number of clips with the provided tag in provided case"""
+def get_tagged_clips(tag, case_id):
+    """Returns a list of clip ids that match provided tag and case"""
 
     # get all the clips with that tag
     clips = tag.clips
 
-    clip_count = 0
-    print tag.tag_name, tag.tag_id
-    for clip in clips:
-        print "\t", clip, clip.video.case_id
-        if clip.video.case_id == int(case_id):
-            clip_count += 1
+    print "\n\n\n\n\n\nclips", clips, "\n\n\n\n\n\n\n"
 
-    return clip_count
+    tagged_clips = []
+
+    for clip in clips:
+        if clip.video.case_id == int(case_id):
+            tagged_clips.append(clip.clip_id)
+
+    return tagged_clips
 
 
 def add_tags(tag, case_id):
@@ -39,7 +40,7 @@ def add_tags(tag, case_id):
 
     #check if the tag exists
     #gets the user object for that email address
-    tag_check = db.session.query(Tag).filter(Tag.tag_name == tag, 
+    tag_check = db.session.query(Tag).filter(Tag.tag_name == tag,
                                                  Tag.case_id == case_id).first()
     # if user already exists associate the user with the new case
     if tag_check is None:

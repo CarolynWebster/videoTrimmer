@@ -2,7 +2,7 @@
 {% block title %}Case Settings{% endblock %}
 
 {% block content %}
-<table id='user-table'>
+<table id='user-table' class="table">
     <tr>
         <th></th>
         <th>User</th>
@@ -28,7 +28,7 @@
 <button id='add_users'>Add new users</button>
 
 <h1>Tags</h1>
-<table id='tags-table'>
+<table id='tags-table' class="table">
     <tr>
         <th></th>
         <th>Tag</th>
@@ -43,7 +43,12 @@
                 <td></td>
             {% endif %}
             <!--case name-->
-            <td>{{ tag.tag_name }}: {{ tag_counts[tag.tag_name] }}</td>
+            <td>{{ tag.tag_name }}:</td>
+            <td>
+                <button class="tag-download" type="button" value='{{ tag.matching_clips }}'>
+                    <span>
+                    Download {{ tag.tag_name }} clips ({{ tag_counts[tag.tag_name] }})</span>
+                </button>
         </tr>
     {% endfor %}
 </table>
@@ -68,6 +73,31 @@
         });
     }
     $('#add_users').on('click', updateUsers)
+</script>
+
+<script src='../static/js/getCurrTime.js'></script>
+
+<script>
+    function downloadTaggedClips(evt){
+        var clips_to_get = evt.currentTarget.value;
+
+        // get the current time for the zip
+        var currTime = getCurrentTime();
+        
+        var formInputs = {
+            'case_id': {{ case_id }},
+            'clips': String(clips_to_get),
+            'call_func': "downloadClips",
+            'vid_type': 'clip',
+            'curr_time': currTime
+        }
+
+        $.post('/handle-clips', formInputs, function() {
+            console.log('request complete')
+        });
+    }
+
+    $(".tag-download").on('click', downloadTaggedClips)
 </script>
 
 <script>

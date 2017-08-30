@@ -26,7 +26,7 @@ from cases import create_case
 
 from users import update_usercase, create_user, validate_usercase, get_user_by_email
 
-from tags import get_tags, add_tags, delete_cliptags, get_tag_count
+from tags import get_tags, add_tags, delete_cliptags, get_tagged_clips
 
 from videos import upload_aws_db, download_from_aws, get_vid_url
 from videos import add_clip_to_db, make_clip_ppt, download_all_files, delete_all_files
@@ -190,9 +190,19 @@ def show_case_settings(case_id):
         tag_counts = {}
 
         for tag in tags:
-            tag_counts[tag.tag_name] = get_tag_count(tag, case_id)
+            # get tagged clips returns a list of clip ids - convert to a string
+            # and it will be used as a value on a download link
+            tag.matching_clips = get_tagged_clips(tag, case_id)
+            
+            # count the clip ids to get a total count
+            tag_counts[tag.tag_name] = len(tag.matching_clips)
+
+            # convert the list to a string to use as a value on the button
+            # we do this bc the handle-clips route parses a string into a
+            tag.matching_clips = str(tag.matching_clips)[1:-1]
 
         print tag_counts
+
         return render_template('case-settings.html', users=users, case_id=case_id, tags=tags, owner=owner, tag_counts=tag_counts)
     else:
         flash("You don't have permission to view that case")
@@ -556,21 +566,26 @@ def handle_clips():
     # req_clips = []
 
     if vid_type == "clip":
-        #get the vid id
-        vid_id = int(request.form.get('vid_id'))
-
-        #get the full video name
-        folder_name = Video.query.get(vid_id).vid_name[:-4]
-
         # get a list of the clip objects from the db [(clip_name, clip_id)]
-        req_clips = db.session.query(Clip.clip_name, Clip.clip_id).join(Video).filter(
-                                    (Clip.clip_id.in_(selected_clips)) &
-                                    (Video.vid_id == vid_id)).all()
+        req_clips = Clip.query.filter(Clip.clip_id.in_(selected_clips)).all()
 
+        try:
+            #get the vid id
+            vid_id = int(request.form.get('vid_id'))
+
+            #get the full video name
+            folder_name = Video.query.get(vid_id).vid_name[:-4]
+        except:
+            # get the case name if this is coming from the case page
+            folder_name = req_clips[0].video.case.case_name
+            # make some adjustments to the case name so we can use it as a folder name
+            folder_name = folder_name.replace(" ", "_")
+            folder_name = folder_name.replace(".", "_")
+            
         # stitch clip and create deck are only availble for clips
         # the true is to trigger the stitch function
         if func_to_perform == 'stitchClips':
-            download_all_files(req_clips, folder_name, g.current_user, vid_type, True)
+            download_all_files(req_clips, folder_name, g.current_user, vid_type, curr_time, True)
         elif func_to_perform == 'createDeck':
             make_clip_ppt(req_clips, folder_name, g.current_user, curr_time)
 
@@ -592,7 +607,7 @@ def handle_clips():
 
     # call the appropriate function
     if func_to_perform == 'downloadClips':
-        download_all_files(req_clips, folder_name, g.current_user, vid_type)
+        download_all_files(req_clips, folder_name, g.current_user, vid_type, curr_time)
     elif func_to_perform == 'deleteClips':
         delete_all_files(req_clips, vid_type)
     return "request complete"

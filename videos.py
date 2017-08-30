@@ -290,7 +290,7 @@ def make_clip_ppt(clips, vid_name, user, curr_time):
     create_slide_deck(DEFAULT_TEMP, clips_for_ppt, vid_name, curr_time)
 
 
-def download_all_files(clips, vid_name, user, vid_type, stitch=False):
+def download_all_files(clips, vid_name, user, vid_type, curr_time, stitch=False):
     """Download selected clips and save as a zip"""
 
     # get data
@@ -298,7 +298,7 @@ def download_all_files(clips, vid_name, user, vid_type, stitch=False):
     user_id = user.user_id
 
     # get date of zip
-    date_zipped = arrow.now('US/Pacific').format('MM-DD-YYYY_hh-mm_A')
+    date_zipped = curr_time
 
     # if we are stitching clips together make a list to hold them
     if stitch is True:
@@ -318,7 +318,7 @@ def download_all_files(clips, vid_name, user, vid_type, stitch=False):
         for clip in clips:
             if vid_type == "clip":
                 # our query returns a tuple (clip_name, clip_id)
-                file_name = clip[0]
+                file_name = clip.clip_name
             elif vid_type == "video":
                 file_name = clip.vid_name
 
