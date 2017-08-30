@@ -377,10 +377,10 @@ def delete_all_files(clips, vid_type):
     for clip in clips:
         if vid_type == "clip":
             #use the clip_id part of the tuple to get the clip obj to delete
-            file_to_del = db.session.query(Clip).get(clip[1])
+            file_to_del = db.session.query(Clip).get(clip.clip_id)
 
             # add the clip name to a list of clips to be deleted from aws
-            delete_aws.append({'Key': clip[0]})
+            delete_aws.append({'Key': clip.clip_name})
 
         # we have to delete clip tags, clip, and then the video if it's a video
         if vid_type == "video":

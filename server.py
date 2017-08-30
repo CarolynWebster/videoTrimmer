@@ -170,6 +170,7 @@ def register_case():
 
 
 @app.route('/case-settings/<case_id>')
+@login_required
 def show_case_settings(case_id):
     """Shows user settings for chosen case"""
 
@@ -213,6 +214,7 @@ def show_case_settings(case_id):
 
 
 @app.route('/add-usercase', methods=["POST"])
+@login_required
 def add_users_to_case():
     """Adds a user to a specific case"""
 
@@ -251,6 +253,7 @@ def add_users_to_case():
 
 
 @app.route('/remove-usercase', methods=["POST"])
+@login_required
 def remove_user_from_case():
     """Removes a user from a specific case"""
 
@@ -264,6 +267,57 @@ def remove_user_from_case():
     db.session.commit()
 
     return "Usercase removed"
+
+
+@app.route('/user-settings', methods=["GET", "POST"])
+@login_required
+def show_user_settings():
+    """Shows user info and allows updates"""
+
+    user = g.current_user
+
+    if request.method == "GET":
+        """Show user info page"""
+
+        return render_template('/user-settings.html', user=user)
+
+    if request.method == "POST":
+        """Update user info in db"""
+
+        user_id = request.form.get('user_id')
+        user = User.query.get(user_id)
+        print user
+        # make sure the current user is editing the right profile
+        if g.current_user.user_id == int(user_id):
+            fname = request.form.get('fname')
+            lname = request.form.get('lname')
+            email = request.form.get('email')
+            password = request.form.get('pass')
+
+            print password
+
+            if user.fname != fname:
+                user.fname = fname
+
+            if user.lname != lname:
+                user.lname = lname
+
+            if user.email != email:
+                user.email = email
+
+            if password != "":
+                user.password = password
+
+            print "\n\n\n\n\n UPDATING \n\n\n\n\n"
+
+            db.session.commit()
+
+            return "Success"
+        else:
+            return "Failure"
+
+
+
 
 
 # USER REGISTRATION/LOGIN ------------------------------------------------------
@@ -340,13 +394,14 @@ def register_user():
         create_user(user_check, email, fname, lname, password)
 
         # send them to their own page
-        return redirect('/cases')
+        return "Success"
 
 
 # TAGS/CLIPTAGS ----------------------------------------------------------------
 
 
 @app.route('/add-tags', methods=["POST"])
+@login_required
 def add_tags_to_case():
     """Adds a tag to a specific case"""
 
@@ -366,6 +421,7 @@ def add_tags_to_case():
 
 
 @app.route('/delete-tag', methods=['POST'])
+@login_required
 def delete_tag():
     """Removes a tag from a case and removes cliptag associations"""
 
@@ -383,6 +439,7 @@ def delete_tag():
 
 
 @app.route('/add-cliptags', methods=["POST"])
+@login_required
 def add_cliptags():
     """Adds a tag to a specific clip"""
 
@@ -405,6 +462,7 @@ def add_cliptags():
         return jsonify(response)
 
 @app.route('/remove-cliptag', methods=["POST"])
+@login_required
 def remove_cliptag():
     """Removes a clip tag"""
 
@@ -640,6 +698,7 @@ def trim_video(vid_id):
 
 
 @app.route('/make-clips', methods=["POST"])
+@login_required
 def get_clip_source():
     """Created clips in db - threads to download, pull_text, and make-clips functions"""
 

@@ -34,6 +34,8 @@ class User(db.Model):
     fname = db.Column(db.String(50), default='')
     lname = db.Column(db.String(50), default='Not registered')
 
+    usercases = db.relationship("UserCase", backref='user', cascade='delete')
+
     def __repr__(self):
         """Provide userful user information"""
 
@@ -69,8 +71,7 @@ class UserCase(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     case_id = db.Column(db.Integer, db.ForeignKey('cases.case_id'))
 
-    case = db.relationship("Case", backref='userCases')
-    user = db.relationship("User", backref='userCases')
+    case = db.relationship("Case", backref='usercases')
 
     def __repr__(self):
         """Provide case/user connection"""
@@ -272,9 +273,9 @@ def example_data():
     db.session.add_all([usercase1, usercase2, usercase3, usercase4])
     db.session.commit()
 
-    vid1 = Video(case_id=case1.case_id, vid_name="Test Video 1", added_by=bob.user_id, added_at=datetime.now(), vid_status='Ready', deponent="Sierra Chappell")
-    vid2 = Video(case_id=case2.case_id, vid_name="Test Video 2", added_by=bob.user_id, added_at=datetime.now(), vid_status='Ready', deponent="Rose Johns")
-    vid3 = Video(case_id=case3.case_id, vid_name="Test Video 3", added_by=sally.user_id, added_at=datetime.now(), vid_status='Ready', deponent="Kristen Stotts")
+    vid1 = Video(case_id=case1.case_id, vid_name="Test Video 1", added_by=bob.user_id, added_at=datetime.now(), recorded_at=datetime.now(), vid_status='Ready', deponent="Sierra Chappell")
+    vid2 = Video(case_id=case2.case_id, vid_name="Test Video 2", added_by=bob.user_id, added_at=datetime.now(), recorded_at=datetime.now(), vid_status='Ready', deponent="Rose Johns")
+    vid3 = Video(case_id=case3.case_id, vid_name="Test Video 3", added_by=sally.user_id, added_at=datetime.now(), recorded_at=datetime.now(), vid_status='Ready', deponent="Kristen Stotts")
 
     db.session.add_all([vid1, vid2, vid3])
     db.session.commit()

@@ -38,3 +38,7 @@ table.sortable thead {
     font-weight: bold;
     cursor: default;
 }
+
+.error-warning {
+  color: red;
+}

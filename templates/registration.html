@@ -3,11 +3,42 @@
 
 {% block content %}
     <h1>Please provide the following information:</h1>
-    <form action"/register" method="POST">
+    <form id='register-user' method="POST">
         <Label>First Name*: </Label><input type="text" name="fname" placeholder="First name" required/><br/>
         <Label>Last Name*: </Label><input type="text" name="lname" placeholder="Last name" required/><br/>
-        <Label>Email*: </Label><input type="text" name="email" placeholder="email" required><br/>
-        <Label>Password*: </Label><input type="password" name="password" placeholder="password" required><br/>
-        <input type='submit' value="Register">
+        <Label>Email*: </Label><input id='email' type="text" name="email" placeholder="email" required><br/>
+        <Label>Password*: </Label><input id='pass' type="password" name="password" placeholder="password" required><br/>
+        <Label>Confirm Password*: </Label><input id='passC' type="password" name="password-confirm" placeholder="password" required><br/>
+        <input type='submit' id='submit-btn' value="Register">
         <p>Fields with a * are required</p>
+        <p class='error-warning' id='error-log'></p>
+
+
+<script>
+    function validateRegistration(evt) {
+        evt.preventDefault()
+
+        //make sure the provided passwords match
+        if ($('#pass').val() != $('#passC').val()){
+            $('#error-log').html("Passwords don't match")
+        }
+        // make sure they provided an email address
+        else if ($('#email').val().indexOf('@') == -1) {
+            $('#error-log').html("Please enter a valid email address")
+        }
+        //if all good - post away!
+        else{
+            var formValues = $("#register-user").serialize();
+            $.post('/register', formValues, function(result){
+                if (result === "Success"){
+                    window.location='/cases'
+                }
+            })
+        }
+
+    }
+
+    $('#submit-btn').on('click', validateRegistration)
+</script>
+
 {% endblock %}
