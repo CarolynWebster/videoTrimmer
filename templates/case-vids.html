@@ -38,7 +38,14 @@
             <td>{{ video.deponent }}</td>
             <td>{{ video.recorded_at }}</td>
             <td><a value='{{ video.vid_name }}' href = '/show-video/{{ video.vid_id }}' target='_blank'>{{ video.vid_name }}</a></td>
-            <td>{{ video.vid_status }}</td>
+            <td>{% if video.vid_status == 'Processing' %}
+                <span class='clip-processing' id='{{video.vid_id}}_Status'>
+                    {{ video.vid_status }}
+                </span>
+            {% else %}
+                {{ video.vid_status }}
+            {% endif %}
+            </td>
             <td class='center-column'>
                 {% if video.transcript %}
                     <i class="fa fa-file-text tscriptTrue" aria-hidden="true" id='{{ video.vid_id }}'></i>
@@ -60,6 +67,9 @@
 <button type="button" id='deleteClips' value="Delete">Delete Videos</button>
 
 <script src="/static/js/table_sort.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+<script src='../static/js/sockets.js'></script>
 
 <script>
 

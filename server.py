@@ -48,7 +48,7 @@ BUCKET_NAME = 'videotrim'
 app.secret_key = "ABC"
 
 app.jinja_env.undefined = StrictUndefined
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode='threading')
 
 # BEFORE REQUEST/LOGIN WRAPPER -------------------------------------------------
 
@@ -94,9 +94,15 @@ def handle_my_custom_event(json_data):
     ready_clips = {}
     ready_clips['clips'] = []
     for clip_id in clips:
-        clip = Clip.query.get(clip_id)
-        if clip.clip_status == 'Ready':
-            ready_clips['clips'].append(clip_id)
+        try:
+            clip = Clip.query.get(clip_id)
+            if clip.clip_status == 'Ready':
+                ready_clips['clips'].append(clip_id)
+        except:
+            clip = Video.query.get(clip_id)
+            if clip.vid_status == 'Ready':
+                ready_clips['clips'].append(clip_id)
+    print 'ready clips', ready_clips
     emit('server update', ready_clips)
 
 # HOMEPAGE ---------------------------------------------------------------------
@@ -330,7 +336,7 @@ def show_user_settings():
             if password != "":
                 user.password = password
 
-            print "\n\n\n\n\n UPDATING \n\n\n\n\n"
+            print "\n\n\n\n\n UPDATING USER \n\n\n\n\n"
 
             db.session.commit()
 
@@ -545,7 +551,7 @@ def upload_video():
             db.session.commit()
 
         # send the upload to a separate thread to upload while the user moves on
-        upload = threading.Thread(target=upload_aws_db, args=(video_file, video_name, case_id, user_id)).start()
+        upload = threading.Thread(target=upload_aws_db, args=(video_file, video_name, case_id, user_id, socketio)).start()
 
         return jsonify(case_id)
 
@@ -766,7 +772,7 @@ def get_clip_source():
                 clips_to_process.append(Clip.query.get(db_clip))
 
         # send the upload to a separate thread to upload while the user moves on
-        download = threading.Thread(target=download_from_aws, args=(save_loc, clips_to_process, vid_id, user_id, vid_name)).start()
+        download = threading.Thread(target=download_from_aws, args=(save_loc, clips_to_process, vid_id, user_id, vid_name, socketio)).start()
 
         return redirect('/clips/{}'.format(vid_id))
     else:
@@ -840,6 +846,7 @@ def show_clip(clip_id):
 
 
 
+
 # STARTUP FUNCTIONS ------------------------------------------------------------
 
 if __name__ == "__main__":
@@ -850,7 +857,8 @@ if __name__ == "__main__":
 
     connect_to_db(app)
 
+
     # Use the DebugToolbar
     DebugToolbarExtension(app)
-
-    app.run(port=5000, host='0.0.0.0')
+    socketio.run(app, port=5000, host='0.0.0.0')
+    # app.run(port=5000, host='0.0.0.0')

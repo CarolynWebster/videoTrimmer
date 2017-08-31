@@ -20,6 +20,10 @@ from ppt import create_slide_deck, find_text_by_page_line
 
 from gmail import send_email
 
+from flask_socketio import emit
+
+# from flask_socketio import SocketIO, send, emit
+
 #aws bucket name
 BUCKET_NAME = 'videotrim'
 
@@ -27,7 +31,7 @@ AWS_ACCESS_KEY = os.environ['AWS_ACCESS_KEY']
 AWS_SECRET_KEY = os.environ['AWS_SECRET_KEY']
 
 
-def upload_aws_db(video_file, video_name, case_id, user_id, BUCKET_NAME=BUCKET_NAME):
+def upload_aws_db(video_file, video_name, case_id, user_id, socketio, BUCKET_NAME=BUCKET_NAME):
     """Handles upload to aws and addition to the db"""
 
     print "\n\n\n\n\n\n\n UPLOAD \n\n\n\n\n\n\n"
@@ -42,10 +46,10 @@ def upload_aws_db(video_file, video_name, case_id, user_id, BUCKET_NAME=BUCKET_N
     s3.Bucket(BUCKET_NAME).put_object(Key=video_name, Body=video_file)
     print "\n\n\n\n\n\n\n UPLOAD DONE \n\n\n\n\n\n\n"
     # once the upload is complete - update the db status
-    update_vid_status(video_name)
+    update_vid_status(video_name, socketio)
 
 
-def update_vid_status(vid_name):
+def update_vid_status(vid_name, socketio):
     """Updates the video status once upload is complete"""
 
     print "\n\n\n\n\n\n\n  VIDEO READY \n\n\n\n\n\n\n"
@@ -55,10 +59,14 @@ def update_vid_status(vid_name):
 
     #get the video based on the name
     vid = scoped_session.query(Video).filter(Video.vid_name == vid_name).first()
-
+    vid_id = vid.vid_id
     #update the status to be ready
     vid.vid_status = 'Ready'
     scoped_session.commit()
+
+    ready_clips = {}
+    ready_clips['clips'] = [vid_id]
+    socketio.emit('server update', ready_clips)
 
     # close the scoped session
     db_session.remove()
@@ -128,7 +136,7 @@ def add_clip_to_db(clip, clip_name_base, file_ext, vid_id, user_id, trim_method)
     return None
 
 
-def download_from_aws(save_loc, clips, vid_id, user_id, vid_name):
+def download_from_aws(save_loc, clips, vid_id, user_id, vid_name, socketio):
     """Downloads file from aws"""
 
     print "dl", clips
@@ -143,7 +151,7 @@ def download_from_aws(save_loc, clips, vid_id, user_id, vid_name):
     # gets the corresponding text for that clip if there is any
     pulled_text = pull_text(clips, vid_id)
     #once the file is available, make clips
-    make_clips(save_loc, clips, vid_id, user_id)
+    make_clips(save_loc, clips, vid_id, user_id, socketio)
 
 
 def pull_text(clips, vid_id):
@@ -185,7 +193,7 @@ def pull_text(clips, vid_id):
     db_session.remove()
 
 
-def make_clips(file_loc, clips, vid_id, user_id):
+def make_clips(file_loc, clips, vid_id, user_id, socketio):
     """Makes the designated clips once the file is downloaded"""
 
     print "\n\n\n\n\n\n\n\n MAKING CLIPS", file_loc, "\n\n\n\n\n\n\n\n\n"
@@ -236,13 +244,13 @@ def make_clips(file_loc, clips, vid_id, user_id):
             video_file = clip_path
             video_name = clip_path.split('/')
             video_name = video_name[-1]
-            s3.meta.client.upload_file(video_file, BUCKET_NAME, video_name, Callback=file_done(video_name))
+            s3.meta.client.upload_file(video_file, BUCKET_NAME, video_name, Callback=file_done(video_name, socketio))
         else:
             #if it wasn't done being written yet - add it back to the list
             clips_to_upload.append(clip_path)
 
 
-def file_done(vid_name):
+def file_done(vid_name, socketio):
     """Updates the clip status once upload is complete"""
 
     print "\n\n\n\n\n\n\n  CLIP READY \n\n\n\n\n\n\n"
@@ -251,11 +259,15 @@ def file_done(vid_name):
 
     # get the clip by name
     clip = scoped_session.query(Clip).filter(Clip.clip_name == vid_name).first()
-
+    clip_id = clip.clip_id
     # update status and commit the change to the db
     clip.clip_status = 'Ready'
     scoped_session.commit()
     
+    ready_clips = {}
+    ready_clips['clips'] = [clip_id]
+    socketio.emit('server update', ready_clips)
+
     # close the session
     db_session.remove()
 
@@ -400,8 +412,6 @@ def delete_all_files(clips, vid_type):
         db.session.delete(file_to_del)
         db.session.commit()
 
-    # close session
-    # db_session.remove()
 
     # delete the files from aws
     response = bucket.delete_objects(Delete={'Objects': delete_aws})
