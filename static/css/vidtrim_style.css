@@ -42,3 +42,7 @@ table.sortable thead {
 .error-warning {
   color: red;
 }
+
+.case-user {
+  text-align: right;
+}

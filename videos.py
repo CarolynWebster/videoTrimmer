@@ -287,7 +287,7 @@ def make_clip_ppt(clips, vid_name, user, curr_time):
 
     for clip in clips:
         # our query returns a tuple (clip_name, clip_id)
-        file_name = clip[0]
+        file_name = clip.clip_name
 
         # make a save location for the downloaded clips in the temp folder
         save_loc = 'static/temp/'+file_name

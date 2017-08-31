@@ -141,7 +141,7 @@ class Clip(db.Model):
     clip_status = db.Column(db.String(10), default='Processing')
 
     user = db.relationship("User", backref="clips")
-    # video = db.relationship("Video", backref="clips")
+    textpull = db.relationship("TextPull", backref="clip", cascade="delete")
     cliptags = db.relationship('ClipTag', cascade="delete")
 
     def __repr__(self):
@@ -213,8 +213,6 @@ class TextPull(db.Model):
     tp_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     clip_id = db.Column(db.Integer, db.ForeignKey('clips.clip_id'))
     pull_text = db.Column(db.Text, nullable=False)
-
-    clip = db.relationship('Clip', backref="text_pulls")
 
     def __repr__(self):
         """useful textpull info"""

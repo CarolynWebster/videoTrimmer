@@ -9,12 +9,18 @@ from model import db, connect_to_db, Clip, TextPull
 from moviepy.editor import *
 
 # set horizontal and vertical position
-vid_VP = Inches(1.91)
-vid_HP = Inches(.41)
+vid_VP_left = Inches(1.91)
+vid_HP_left = Inches(.41)
+
+vid_HP_center = Inches(2.5)
+vid_VP_center = Inches(1.22)
 
 # set video width and height
-vid_H = Inches(2.82)
-vid_W = Inches(3.77)
+vid_H_sm = Inches(2.82)
+vid_W_sm = Inches(3.77)
+
+vid_H_lg = Pt(400)
+vid_W_lg = Pt(600)
 
 def create_slide_deck(template, clips, vid_name, curr_time):
     """Creates a slide deck of selected clips"""
@@ -29,6 +35,9 @@ def create_slide_deck(template, clips, vid_name, curr_time):
         # pull out just the video name without the file path
         clip_name = clip[clip.rfind('/')+1:]
 
+        # get the clip from the db
+        db_clip = db.session.query(Clip).filter(Clip.clip_name == clip_name).first()
+
         # get a still from that video
         vid_clip = VideoFileClip(clip)
 
@@ -36,48 +45,54 @@ def create_slide_deck(template, clips, vid_name, curr_time):
         vid_front = clip[:-4]+".png"
         vid_png = vid_clip.save_frame(vid_front)
 
-        # select the depo slide layout
-        slide = prs.slides.add_slide(prs.slide_layouts[7])
+        deponent = db_clip.video.deponent
 
-        # add a video to the slide using the provided dimensions
-        video = slide.shapes.add_movie(clip, vid_HP, vid_VP, vid_W, vid_H, vid_front)
+        if db_clip.textpull:
+            # select the depo slide layout
+            slide = prs.slides.add_slide(prs.slide_layouts[7])
 
-        # get the clip from the db
-        db_clip = db.session.query(Clip).filter(Clip.clip_name == clip_name).first()
+            # add a video to the slide using the provided dimensions
+            video = slide.shapes.add_movie(clip, vid_HP_left, vid_VP_left, vid_W_sm, vid_H_sm, vid_front)
 
-        # get the matching textpull for that clip
-        db_text = db.session.query(TextPull).filter(TextPull.clip_id == db_clip.clip_id).first()
+            # get the matching textpull for that clip
+            db_text = db.session.query(TextPull).filter(TextPull.clip_id == db_clip.clip_id).first()
 
-        # we have to split the lines up into pieces so we can insert them properly
-        # if it is a solid string - we lose our hard returns
-        split_text = db_text.pull_text.split("\n")
+            # we have to split the lines up into pieces so we can insert them properly
+            # if it is a solid string - we lose our hard returns
+            split_text = db_text.pull_text.split("\n")
 
-        # target the text frame on the slide
-        txt = slide.placeholders[1]
+            # target the text frame on the slide
+            txt = slide.placeholders[1]
 
-        if txt.has_text_frame:
-            # find the text frame in the placeholder
-            text_frame = txt.text_frame
+            if txt.has_text_frame:
+                # find the text frame in the placeholder
+                text_frame = txt.text_frame
 
-            # set text frame to be auto-sizing
-            text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
+                # set text frame to be auto-sizing
+                text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
 
-            # id the paragraphs
-            p = text_frame.paragraphs[0]
+                # id the paragraphs
+                p = text_frame.paragraphs[0]
 
-            # entries starting with a Q. or A. have a blank space at the start
-            # so if the 0th "line" is nothing - start at line 1
-            start_line = 0
-            if split_text[0] != "":
-                p.text = split_text[0]
-            else:
-                p.text = split_text[1]
-                start_line = 1
+                # entries starting with a Q. or A. have a blank space at the start
+                # so if the 0th "line" is nothing - start at line 1
+                start_line = 0
+                if split_text[0] != "":
+                    p.text = split_text[0]
+                else:
+                    p.text = split_text[1]
+                    start_line = 1
 
-            # load the text in line by line as paragraphs
-            for para in split_text[start_line+1:]:
-                p = text_frame.add_paragraph()
-                p.text = para
+                # load the text in line by line as paragraphs
+                for para in split_text[start_line+1:]:
+                    p = text_frame.add_paragraph()
+                    p.text = para
+        else:
+            # select the 1-line blank slide master
+            slide = prs.slides.add_slide(prs.slide_layouts[10])
+
+            # add a video to the slide using the provided dimensions
+            video = slide.shapes.add_movie(clip, vid_HP_center, vid_VP_center, vid_W_lg, vid_H_lg, vid_front)
 
     prs.save(pres_name)
 

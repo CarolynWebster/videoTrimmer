@@ -2,6 +2,7 @@
 {% block title %}Case Settings{% endblock %}
 
 {% block content %}
+<div class='col-lg-6'>
 <table id='user-table' class="table">
     <tr>
         <th></th>
@@ -11,9 +12,9 @@
     {% for user in users %}
     <tr id="User_{{ user.user_id }}">
         {% if user.user_id == owner.user_id %}
-            <td><span class='glyphicon glyphicon-star'></span></td>
+            <td class='case-user'><span class='glyphicon glyphicon-star'></span></td>
         {% else %}
-            <td><button type="button" id={{ user.user_id }} class="close remove-user-x" aria-label="Close">
+            <td class='case-user'><button type="button" id={{ user.user_id }} class="close remove-user-x" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
             </button></td>
         {% endif %}
@@ -24,7 +25,7 @@
     {% endfor %}
 </table>
 <p><br/><span class='glyphicon glyphicon-star'></span> denotes case owner</p>
-<textarea id="new_users_input" placeholder="JaneD@email.com, JohnD@email.com"></textarea>
+<textarea id="new_users_input" placeholder="JaneD@email.com, JohnD@email.com"></textarea></br>
 <button id='add_users'>Add new users</button>
 
 <h1>Tags</h1>
@@ -53,9 +54,11 @@
     {% endfor %}
 </table>
 
-<textarea id="new_tags_input" placeholder="Mock Trial, Appeal, Arbitration"></textarea>
+
+<textarea id="new_tags_input" placeholder="Mock Trial, Appeal, Arbitration"></textarea></br>
 <button id='add_tags'>Add new tags</button>
-    
+
+</div>
 <script>
     function updateUsers (){
         var new_users = $('#new_users_input').val()
