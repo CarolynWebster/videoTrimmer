@@ -9,6 +9,7 @@ decorator==4.0.11
 docutils==0.14
 Flask==0.12.2
 Flask-DebugToolbar==0.10.1
+Flask-SocketIO==2.9.2
 Flask-SQLAlchemy==2.2
 futures==3.1.1
 google-api-python-client==1.6.2
@@ -29,7 +30,9 @@ psycopg2==2.7.1
 pyasn1==0.3.2
 pyasn1-modules==0.0.11
 python-dateutil==2.6.1
+python-engineio==1.7.0
 python-pptx==0.6.6
+python-socketio==1.8.0
 PyYAML==3.12
 rsa==3.4.2
 s3transfer==0.1.10

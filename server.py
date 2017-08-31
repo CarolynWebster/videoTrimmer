@@ -31,6 +31,10 @@ from tags import get_tags, add_tags, delete_cliptags, get_tagged_clips
 from videos import upload_aws_db, download_from_aws, get_vid_url
 from videos import add_clip_to_db, make_clip_ppt, download_all_files, delete_all_files
 
+from flask_socketio import SocketIO, send, emit
+
+import json
+
 app = Flask(__name__)
 
 # AWS_ACCESS_KEY = os.environ['AWS_ACCESS_KEY']
@@ -44,7 +48,7 @@ BUCKET_NAME = 'videotrim'
 app.secret_key = "ABC"
 
 app.jinja_env.undefined = StrictUndefined
-
+socketio = SocketIO(app)
 
 # BEFORE REQUEST/LOGIN WRAPPER -------------------------------------------------
 
@@ -76,6 +80,24 @@ def pre_process_all_requests():
     else:
         g.current_user = None
 
+
+@app.route('/test-socket')
+def test_socket():
+
+    return render_template('socket.html')
+
+@socketio.on('update_clips')
+def handle_my_custom_event(json_data):
+    print('received json: ' + str(json_data))
+    files_to_update = json.loads(json_data)
+    clips = files_to_update['clips']
+    ready_clips = {}
+    ready_clips['clips'] = []
+    for clip_id in clips:
+        clip = Clip.query.get(clip_id)
+        if clip.clip_status == 'Ready':
+            ready_clips['clips'].append(clip_id)
+    emit('server update', ready_clips)
 
 # HOMEPAGE ---------------------------------------------------------------------
 
