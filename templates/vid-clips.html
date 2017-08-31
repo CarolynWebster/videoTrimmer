@@ -89,7 +89,15 @@
         console.log(ready_clips)
         for (var j = 0; j < ready_clips.length; j++) {
             var statusSpan = ready_clips[j] + "_Status"
-            $('#'+statusSpan).html("Ready")
+            $('#'+statusSpan).html("Ready");
+            var clipIndex = clips_to_update.clips.indexOf(ready_clips[j])
+            //remove it from the list of clips to check
+            if (clipIndex > -1){
+                clips_to_update.clips.splice(clipIndex, 1)
+            }
+        }
+        if (clips_to_update.clips.length == 0){
+            socket.off()
         }
     })
     
