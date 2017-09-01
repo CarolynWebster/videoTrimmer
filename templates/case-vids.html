@@ -7,7 +7,7 @@
 
 {% block content %}
 <h1>Case name: {{ case.case_name }}</h1>
-<p><a href='/case-settings/{{ case.case_id}}'>Case settings</a></p>
+<p><a href='/case-settings/{{ case.case_id}}'>Case Dashboard</a></p>
 <a href="/upload-video?case_id={{ case.case_id }}"><button>Upload a new video</button></a>
 <input type="text" id="table-search" onkeyup="filterTable(5)" placeholder="Search...">
 <table data-toggle="table" class="table table-sortable" id="clip-table">

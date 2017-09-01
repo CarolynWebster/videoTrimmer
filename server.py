@@ -14,7 +14,7 @@ from functools import wraps
 
 from flask_debugtoolbar import DebugToolbarExtension
 
-from model import db, connect_to_db, User, Video, Case, UserCase, Clip, Tag, Transcript
+from model import db, connect_to_db, User, Video, Case, UserCase, Clip, Tag, Transcript, CaseMessage
 
 from datetime import datetime, time, timedelta
 
@@ -141,7 +141,7 @@ def show_case_vids(case_id):
 
     if user_permitted:
         # get all videos that match the provided case_id
-        vids = Video.query.filter(Video.case_id == case_id).all()
+        vids = Video.query.filter(Video.case_id == case_id).order_by(Video.vid_name).all()
 
         # get the case object for the provided case_id
         this_case = Case.query.get(case_id)
@@ -205,13 +205,14 @@ def show_case_settings(case_id):
     # check if the user has permission to view this case
     user_permitted = validate_usercase(case_id, g.current_user.user_id)
 
-    owner_id = Case.query.get(case_id).owner_id
+    case = Case.query.get(case_id)
+    owner_id = case.owner_id
     owner = User.query.get(owner_id)
 
     if user_permitted:
         # get all users associated with this case id
         users = db.session.query(User.fname, User.lname, User.email, User.user_id).join(
-                                UserCase).filter(UserCase.case_id == case_id).all()
+                                UserCase).filter(UserCase.case_id == case_id).order_by(User.fname).all()
 
         # get the tags for this case and the default tags
         tags = get_tags(case_id)
@@ -230,12 +231,55 @@ def show_case_settings(case_id):
             # we do this bc the handle-clips route parses a string into a
             tag.matching_clips = str(tag.matching_clips)[1:-1]
 
-        print tag_counts
+        case_mess = CaseMessage.query.filter(CaseMessage.case_id == case_id).order_by(CaseMessage.mess_id.desc()).all()
 
-        return render_template('case-settings.html', users=users, case_id=case_id, tags=tags, owner=owner, tag_counts=tag_counts)
+
+        return render_template('case-settings.html', users=users, case_id=case_id, tags=tags, owner=owner, tag_counts=tag_counts, case_mess=case_mess)
     else:
         flash("You don't have permission to view that case")
         return redirect('/cases')
+
+
+@app.route('/send-casemessage', methods=["POST"])
+@login_required
+def send_casemessage():
+    """Posts a message on the case settings page"""
+
+    case_id = request.form.get('case_id')
+    # check if the user has permission to view this case
+    user_permitted = validate_usercase(case_id, g.current_user.user_id)
+
+    if user_permitted:
+        mess_text = request.form.get('new_mess')
+
+        new_mess = CaseMessage(user_id=g.current_user.user_id, case_id=case_id, text=mess_text)
+        db.session.add(new_mess)
+        db.session.commit()
+
+        response = {
+            'user_name': g.current_user.fname + " " + g.current_user.lname,
+            'mess_text': mess_text,
+            'mess_id': new_mess.mess_id,
+            'user_id': g.current_user.user_id,
+        }
+        socketio.emit('new casemessage', response)
+
+        return jsonify(response)
+
+@app.route('/remove-casemessage', methods=["POST"])
+@login_required
+def remove_casemessage():
+    """Removes a message from a case"""
+
+    mess_id = request.form.get('mess_id')
+
+    mess = CaseMessage.query.get(mess_id)
+    db.session.delete(mess)
+    db.session.commit()
+
+    socketio.emit('remove casemessage', mess_id)
+
+    return mess_id
 
 
 # USER/USER CASES ---------------------------------------------------------------

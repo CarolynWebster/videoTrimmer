@@ -55,6 +55,7 @@ class Case(db.Model):
     case_name = db.Column(db.String(100), nullable=False)
 
     users = db.relationship('User', secondary="usercases", backref="cases")
+    case_messages = db.relationship('CaseMessage', backref='case', cascade='delete')
 
     def __repr__(self):
         """Provide userful user information"""
@@ -80,22 +81,42 @@ class UserCase(db.Model):
                                                          self.user_id)
 
 
-class Zip(db.Model):
-    """A zip file of clips"""
+# class Zip(db.Model):
+#     """A zip file of clips"""
 
-    __tablename__ = "zips"
+#     __tablename__ = "zips"
 
-    zip_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
-    zip_name = db.Column(db.String(100), nullable=False)
+#     zip_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+#     zip_name = db.Column(db.String(100), nullable=False)
+#     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+#     vid_id = db.Column(db.Integer, db.ForeignKey('videos.vid_id'))
+
+#     user = db.relationship("User", backref="zips")
+
+#     def __repr__(self):
+#         """useful zip info"""
+
+#         return "<Zip zip_id={} name={}>".format(self.zip_id, self.zip_name)
+
+
+class CaseMessage(db.Model):
+    """Case specific messages between team members"""
+
+    __tablename__ = "casemessages"
+
+    mess_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    case_id = case_id = db.Column(db.Integer, db.ForeignKey('cases.case_id'))
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
-    vid_id = db.Column(db.Integer, db.ForeignKey('videos.vid_id'))
+    text = db.Column(db.Text, nullable=False)
 
-    user = db.relationship("User", backref="zips")
+    user = db.relationship("User", backref="case_messages")
 
     def __repr__(self):
-        """useful zip info"""
+        """Provide message info"""
 
-        return "<Zip zip_id={} name={}>".format(self.zip_id, self.zip_name)
+        return "<CaseMessage case_id={} user_id={}>".format(self.case_id,
+                                                            self.user_id)
+
 
 
 class Video(db.Model):

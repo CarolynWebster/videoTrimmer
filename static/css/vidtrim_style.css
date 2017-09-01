@@ -74,6 +74,20 @@ table.sortable thead {
   padding: 5px;
   margin-right: 10px
 }
+
+.case-mess {
+  border: 2px solid gray;
+  width: 95%;
+  padding: 5px;
+  margin: 2px;
+  border-radius: 10px;
+}
+
+#all-messages {
+  overflow: scroll;
+  height:500px;
+}
+
 /*body {
   background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), 
                     url('../film_bg.jpg');

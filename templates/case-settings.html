@@ -1,64 +1,142 @@
 {% extends 'base.html' %}
 {% block title %}Case Settings{% endblock %}
 
+{% block addToHead %}<script>var currUser = {{g.current_user.user_id}};</script>{% endblock %}
+
 {% block content %}
 <div class='col-lg-6'>
-<table id='user-table' class="table">
-    <tr>
-        <th></th>
-        <th>User</th>
-        <th>Email</th>
-    </tr>
-    {% for user in users %}
-    <tr id="User_{{ user.user_id }}">
-        {% if user.user_id == owner.user_id %}
-            <td class='case-user'><span class='glyphicon glyphicon-star'></span></td>
-        {% else %}
-            <td class='case-user'><button type="button" id={{ user.user_id }} class="close remove-user-x" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button></td>
-        {% endif %}
-        <!--case name-->
-        <td>{{ user.fname }} {{ user.lname }}</td>
-        <td>{{ user.email }}</td>
-    </tr>
-    {% endfor %}
-</table>
-<p><br/><span class='glyphicon glyphicon-star'></span> denotes case owner</p>
-<textarea id="new_users_input" placeholder="JaneD@email.com, JohnD@email.com"></textarea></br>
-<button id='add_users'>Add new users</button>
-
-<h1>Tags</h1>
-<table id='tags-table' class="table">
-    <tr>
-        <th></th>
-        <th>Tag</th>
-    </tr>
-    {% for tag in tags %}
-        <tr id="Tag_{{ tag.tag_id }}">
-            {% if tag.case_id == case_id|int %}
-                <td><button type="button" id={{ tag.tag_id }} class="close remove-tag-x" aria-label="Close">
+    <h1>Users</h1>
+    
+    <table id='user-table' class="table">
+        <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Email</th>
+        </tr>
+        
+        {% for user in users %}
+        <tr id="User_{{ user.user_id }}">
+            {% if user.user_id == owner.user_id %}
+                <td class='case-user'><span class='glyphicon glyphicon-star'></span></td>
+            {% else %}
+                <td class='case-user'><button type="button" id={{ user.user_id }} class="close remove-user-x" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button></td>
-            {% else %}
-                <td></td>
             {% endif %}
             <!--case name-->
-            <td>{{ tag.tag_name }}:</td>
-            <td>
-                <button class="tag-download" type="button" value='{{ tag.matching_clips }}'>
-                    <span>
-                    Download {{ tag.tag_name }} clips ({{ tag_counts[tag.tag_name] }})</span>
-                </button>
+            <td>{{ user.fname }} {{ user.lname }}</td>
+            <td>{{ user.email }}</td>
         </tr>
-    {% endfor %}
-</table>
+        {% endfor %}
+    
+    </table>
+    
+    <p><br/><span class='glyphicon glyphicon-star'></span> denotes case owner</p>
+    
+    <textarea id="new_users_input" placeholder="JaneD@email.com, JohnD@email.com"></textarea></br>
+    <button id='add_users'>Add new users</button>
+
+    <h1>Tags</h1>
+    
+    <table id='tags-table' class="table">
+        <tr>
+            <th></th>
+            <th>Tag</th>
+        </tr>
+        {% for tag in tags %}
+            <tr id="Tag_{{ tag.tag_id }}">
+                {% if tag.case_id == case_id|int %}
+                    <td><button type="button" id={{ tag.tag_id }} class="close remove-tag-x" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button></td>
+                {% else %}
+                    <td></td>
+                {% endif %}
+                <!--case name-->
+                <td>{{ tag.tag_name }}:</td>
+                <td>
+                    <button class="tag-download" type="button" value='{{ tag.matching_clips }}'>
+                        <span>
+                        Download {{ tag.tag_name }} clips ({{ tag_counts[tag.tag_name] }})</span>
+                    </button>
+            </tr>
+        {% endfor %}
+    </table>
 
 
-<textarea id="new_tags_input" placeholder="Mock Trial, Appeal, Arbitration"></textarea></br>
-<button id='add_tags'>Add new tags</button>
+    <textarea id="new_tags_input" placeholder="Mock Trial, Appeal, Arbitration"></textarea></br>
+    <button id='add_tags'>Add new tags</button>
 
 </div>
+
+<div class='col-lg-6' id='case-messages'>
+    <h1>Case messages</h1>
+    <textarea id='new-message' class='mess-window' placeholder='Send team message'></textarea>
+</br>
+    <button id='send-message'>Send</button>
+    <div id='all-messages' class='mess-window'>
+        {% for mess in case_mess %}
+            <div class='case-mess' aria-label="Close" id="div_{{mess.mess_id}}">
+                {% if mess.user_id == g.current_user.user_id %}
+                    <button class='mess-remove close' id={{mess.mess_id}}><span aria-hidden="true">&times;</span></button>
+                {% endif %}
+                <strong>{{ mess.user.fname }} {{ mess.user.lname }}</strong>
+            </br>
+                {{ mess.text }}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+<script src='../static/js/sockets.js'></script>
+
+<script>
+    function sendCaseMessage(evt){
+        var new_mess = $('#new-message').val()
+
+        var formInputs = {
+            'new_mess': new_mess,
+            'case_id': {{ case_id }},
+        }
+        $.post('/send-casemessage', formInputs, function (results) {
+            console.log('message sent!')
+        });
+
+    }
+
+    function showNewMessage(results){
+        $('#new-message').html("")
+
+        mess_html = '<div class="case-mess" id="div_' + results.mess_id + '">'
+        //add a remove button for the user who sent it
+        if (results.user_id == currUser){
+            mess_html = mess_html + '<button class="mess-remove close" id=' + results.mess_id + ' aria-label="Close"><span aria-hidden="true">&times;</span></button>'
+        }
+        mess_html = mess_html +  '<strong>' + results.user_name + '</strong> </br>' + results.mess_text + '</div>'
+
+        $('#all-messages').prepend(mess_html)
+        $('#'+results.mess_id).on('click', removeMessage)
+    }
+
+    $('#send-message').on('click', sendCaseMessage)
+
+
+    function removeMessage(evt){
+        var mess_target = evt.currentTarget.id
+
+        var formInputs = {
+            'mess_id': mess_target,
+        }
+
+        $.post('/remove-casemessage', formInputs, function (results) {
+            console.log("removed")
+        });
+    }
+
+    $(".mess-remove").on('click', removeMessage)
+</script>
+
 <script>
     function updateUsers (){
         var new_users = $('#new_users_input').val()

@@ -15,6 +15,7 @@ function check_file_updates() {
         socket.emit('update_clips', to_send);
     });
     socket.on('server update', function(results){
+
         var ready_clips = results['clips'];
         console.log(ready_clips);
         for (var j = 0; j < ready_clips.length; j++) {
@@ -27,10 +28,20 @@ function check_file_updates() {
             }
         }
         if (clips_to_update.clips.length == 0){
-            socket.off();
+            //socket.off();
             console.log("socket off");
         }
-    })
+    });
+
+    socket.on('new casemessage', function(results){
+        console.log(results);
+        showNewMessage(results);
+    });
+
+    socket.on('remove casemessage', function(results){
+        console.log(results);
+        $('#div_'+results).remove()
+    });
 }
 
 check_file_updates();
