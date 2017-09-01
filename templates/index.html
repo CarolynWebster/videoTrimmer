@@ -1,12 +1,16 @@
 {% extends 'base.html' %}
 {% block title %}Welcome, Please log in{% endblock %}
 {% block content %}
-    <h1>Welcome to Cut to the Point</h1>
-    <h3>Please login</h3>
+    <div class='centered'>
+    <img src='static/logo_full.png' height="200"/>
+    </br>
+    </br>
+    <h3>Welcome, please sign in:</h3>
+    </br>
     <form action="/login" method="POST">
-        <Label>Email: </Label><input type="text" name="email" placeholder="email" required><br/>
-        <Label>Password: </Label><input type="password" name="password" placeholder="password" required>
-        <input type='submit' value="Log In">
-        <br/>
-        <p><a href='/register'>Register for a new account</a></p>
+        <Label class='loginform'>Email: </Label><input class='logininput' type="text" name="email" placeholder="email" required><br/>
+        <Label class='loginform'>Password: </Label><input class='logininput' type="password" name="password" placeholder="password" required></br>
+        <input class='loginbtn' type='submit' value="Log In">
+        <p><a href='/register'><button class='loginbtn' type="button">Register for a new account</button></a></p>
+    </div>
 {% endblock %}

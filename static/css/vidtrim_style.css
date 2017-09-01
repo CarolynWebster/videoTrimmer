@@ -47,8 +47,35 @@ table.sortable thead {
   text-align: right;
 }
 
-body {
+.loginform {
+  width: 80px;
+  text-align: left;
+}
+
+.logininput {
+  width: 200;
+}
+
+.loginbtn {
+  width: 250px;
+  text-align: center;
+  border-radius: 3px;
+  background: #f15a24;
+  border-style: none;
+  margin: 5px;
+  color: white;
+}
+
+.centered {
+  text-align: center;
+}
+
+.navbar-brand {
+  padding: 5px;
+  margin-right: 10px
+}
+/*body {
   background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), 
                     url('../film_bg.jpg');
   background-repeat: no-repeat;
-}
+}*/
