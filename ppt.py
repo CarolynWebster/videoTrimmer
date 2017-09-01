@@ -61,8 +61,13 @@ def create_slide_deck(template, clips, vid_name, curr_time):
             # if it is a solid string - we lose our hard returns
             split_text = db_text.pull_text.split("\n")
 
+            citation = u'\u2013' + 'Depo at ' + db_clip.start_pl + u'\u2013' + db_clip.end_pl
+
             # target the text frame on the slide
             txt = slide.placeholders[1]
+
+            cite = slide.placeholders[15]
+            cite.text = citation
 
             if txt.has_text_frame:
                 # find the text frame in the placeholder
@@ -94,19 +99,11 @@ def create_slide_deck(template, clips, vid_name, curr_time):
             # add a video to the slide using the provided dimensions
             video = slide.shapes.add_movie(clip, vid_HP_center, vid_VP_center, vid_W_lg, vid_H_lg, vid_front)
 
+        # set deponent name as title
+        title_placeholder = slide.shapes.title
+        title_placeholder.text = deponent
+
     prs.save(pres_name)
-
-
-def find_text_by_time(source):
-    """Pulls corresponding text based on clip"""
-
-    start_time = '00:08:5\d.\d{3}'
-    end_time = '00:09:1\d.\d{3}'
-
-    start_search = re.search(start_time, source)
-    end_search = re.search(end_time, source)
-
-    print start_search.group(0), end_search.group(0)
 
 
 def find_text_by_page_line(start_pl, end_pl, source):

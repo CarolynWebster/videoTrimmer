@@ -46,3 +46,9 @@ table.sortable thead {
 .case-user {
   text-align: right;
 }
+
+body {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), 
+                    url('../film_bg.jpg');
+  background-repeat: no-repeat;
+}
