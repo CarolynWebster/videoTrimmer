@@ -36,8 +36,11 @@ def upload_aws_db(video_file, video_name, case_id, user_id, socketio, BUCKET_NAM
 
     print "\n\n\n\n\n\n\n UPLOAD \n\n\n\n\n\n\n"
 
-    # read the contents of the filestorage obj
-    video_file = video_file.read()
+    try:
+        # read the contents of the filestorage obj
+        video_file = video_file.read()
+    except:
+        video_file = open(video_file).read()
 
     #start a connection with aws
     session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)

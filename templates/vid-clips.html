@@ -2,12 +2,13 @@
 {% block title %}Case List{% endblock %}
 
 {% block addToHead %}
+<script>var typeOfVid = "clip"</script>
    
 {% endblock %}
 
 {% block content %}
-<h1>Case: <a href = "../cases/{{ main_vid.case.case_id }}">{{ main_vid.case.case_name }}</a>
-<h1>Video source: {{ main_vid.vid_name }}</span></h1>
+<h1><a href = "../cases/{{ main_vid.case.case_id }}">{{ main_vid.case.case_name }}</a>: {{ main_vid.vid_name }}</span></h1>
+<p><a href='/case-settings/{{ main_vid.case.case_id}}'>Case Dashboard</a></p>
 <a href="/show-video/{{ main_vid.vid_id }}" target='_blank'><button>Show video</button></a>
 <a href="/trim-video/{{ main_vid.vid_id }}"><button>Trim new clips</button></a>
 <div id='alerts'><div class="alert alert-success alert-dismissable" id="success-message"><a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a><strong>Success!</strong> Your request has been sent.</div></div>
@@ -47,7 +48,7 @@
         
         <td id='tagtd_{{ clip.clip_id }}'>
             {% for ct in clip.clip_tags %}
-                <button class="tag-btn cbox" value='{{ ct.tag.tag_id }}_{{ clip.clip_id }}' id='{{ ct.tag.tag_id }}_{{ clip.clip_id }}'>{{ ct.tag.tag_name }}<i class="glyphicon glyphicon-remove"></i></button>
+                <button class="tag-btn cbox" value='{{ ct.tag.tag_id }}_{{ clip.clip_id }}' id='{{ ct.tag.tag_id }}_{{ clip.clip_id }}'>{{ ct.tag.tag_name }}<i class="case-user glyphicon glyphicon-remove"></i></button>
             {% endfor %}
         </td>
         
@@ -76,59 +77,7 @@ $('#alerts').hide()
 
 var successAlert = '<div class="alert alert-success alert-dismissable fade in" id="success-message"><a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a><strong>Success!</strong> Your request has been sent.</div>'
 
-function collect_checked_vids(evt){
-    // get the current time for the zip
-    currTime = getCurrentTime();
 
-    //uncheck all the boxes
-    uncheckAll();
-    
-    showAlert();
-
-    //get an array of all the checked clips
-    var checked_vids = $('.vidcheck:checkbox:checked')
-    var vidsToDL = [];
-    for(var i = 0; i < checked_vids.length; i++){
-        console.log(checked_vids[i].value)
-        vidsToDL.push(checked_vids[i].value)
-    }
-    vids = vidsToDL.toString();
-    console.log(vids)
-    var formInputs = {
-        'clips': vids,
-        'vid_id': {{ main_vid.vid_id }},
-        'call_func': evt.currentTarget.id,
-        'vid_type': "clip",
-        'curr_time': currTime
-    }
-
-    var all_cboxes = $('.vidcheck:checkbox')
-    all_cboxes.prop('checked', false);
-
-    if (evt.currentTarget.id == 'stitchClips' | 
-        evt.currentTarget.id == 'downloadClips' | 
-        evt.currentTarget.id == 'createDeck') {
-        console.log("handle-clips")
-        //send direction to server
-        //download function called from the handle-clips route
-        $.post('/handle-clips', formInputs, function() {
-            console.log('request complete')
-            $('#success-message').fadeOut()
-        });
-    }
-    else if (evt.currentTarget.id == 'deleteClips') {
-        console.log("delete")
-        var confirm_delete = confirm('Are you sure you want to delete '+checked_vids.length+' clips?\nThis action cannot be undone.');
-        //send direction to server
-        //delete function called from the handle-clips route
-        if (confirm_delete == true)
-            $.post('/handle-clips', formInputs, function() {
-                console.log('request complete')
-                $('#success-message').fadeOut()
-                location.reload()
-            });
-    }
-}
 
 function showAlert() {
     $("#alerts").show();
@@ -138,92 +87,11 @@ function showAlert() {
 }
 
 
-function toggleChecks(evt) {
-    var status = evt.currentTarget.checked
-    console.log(status)
-    var all_cboxes = $('.vidcheck:checkbox')
-    if (status == true) {
-        //all_cboxes.prop('checked', true);
-        for (var c=0; c < all_cboxes.length; c++) {
-            if (all_cboxes[c].offsetHeight > 0) {
-                all_cboxes[c].checked = true;
-            }
-        }
-    }
-    else {
-        all_cboxes.prop('checked', false);
-    }
-
-}
-
-function uncheckAll() {
-    //get all the checkboxes
-    checkboxes = $('.cbox')
-    checkboxes.prop('checked', false);
-}
-
-$('#stitchClips').on('click', collect_checked_vids)
-$('#downloadClips').on('click', collect_checked_vids)
-$('#deleteClips').on('click', collect_checked_vids)
-$('#createDeck').on('click', collect_checked_vids)
-$('#select-all').on('change', toggleChecks)
-
-
 </script>
 
-<script src='../static/js/getCurrTime.js'></script>
+<script src="{{url_for ('static', filename='js/getCurrTime.js') }}"></script>
 
-<script>
-    function removeTag(evt){
-      //confirm they want to delete that tag
-      var youreSure = confirm('Are you sure you want to delete this tag?')
-      
-      //if they say yes
-      if (youreSure){
-        //get the tag name and clipid from the button id
-        var clipIdTarget = evt.currentTarget.id;
-        var tagInfo = clipIdTarget.split('_');
-        var tagId = tagInfo[0];
-        var clipId = tagInfo[1];
+<script src="{{url_for ('static', filename='js/tags.js') }}"></script>
 
-        tagInputs = {
-          'clip_id': clipId,
-          'tag_id': tagId
-        }
-
-        $.post('/remove-cliptag', tagInputs, function(results) {
-          console.log(results, clipIdTarget)
-            //delete the appropriate tag btn
-            var tagClipId = results.tag_id+"_"+results.clip_id
-            $('#'+tagClipId).remove()
-        });
-      }
-    }
-
-    function addTags(evt){
-        var clipIdTarget = evt.currentTarget.id;
-        var selTarget = '#sel_' + clipIdTarget;
-        var tdTarget = '#tagtd_' + clipIdTarget;
-        tagInputs = {
-            'clip_id': clipIdTarget,
-            'tag_id': $(selTarget).val()
-        };
-        $.post('/add-cliptags', tagInputs, function (results) {
-            console.log(results)
-            // returns dict with {tag_id, clip_id, tag_name}
-            var tagClipId = results.tag_id+"_"+results.clip_id
-            var tagBtn = "<button class='tag-btn' value='"+tagClipId+"' id='"+tagClipId+"'>"+results.tag_name+"<i class='glyphicon glyphicon-remove'></i></button>"
-            $(tdTarget).append(tagBtn)
-            //add event listener to new btn
-            $('#'+tagClipId).on('click', removeTag)
-        })
-    }
-
-    $(".casetag").on('click', addTags)
-    $(".tag-btn").on('click', removeTag)
-
-
-</script>
-
-<script src="/static/js/table_sort.js"></script>
+<script src="{{url_for ('static', filename='js/tableSort.js') }}"></script>
 {% endblock %}

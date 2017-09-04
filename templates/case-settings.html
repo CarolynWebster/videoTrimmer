@@ -1,10 +1,15 @@
 {% extends 'base.html' %}
 {% block title %}Case Settings{% endblock %}
 
-{% block addToHead %}<script>var currUser = {{g.current_user.user_id}};</script>{% endblock %}
+{% block addToHead %}
+<script>
+    var currUser = {{g.current_user.user_id}};
+    var currCaseID = {{ case.case_id }}
+</script>{% endblock %}
 
 {% block content %}
-<div class='col-lg-6'>
+<h1><a href = "../cases/{{ case.case_id }}">{{ case.case_name }}</a></h1>
+<div class='col-lg-4'>
     <h1>Users</h1>
     
     <table id='user-table' class="table">
@@ -33,7 +38,7 @@
     
     <p><br/><span class='glyphicon glyphicon-star'></span> denotes case owner</p>
     
-    <textarea id="new_users_input" placeholder="JaneD@email.com, JohnD@email.com"></textarea></br>
+    <textarea id="new_users_input" class='settings-input' placeholder="JaneD@email.com, JohnD@email.com"></textarea></br>
     <button id='add_users'>Add new users</button>
 
     <h1>Tags</h1>
@@ -42,10 +47,11 @@
         <tr>
             <th></th>
             <th>Tag</th>
+            <th></th>
         </tr>
         {% for tag in tags %}
             <tr id="Tag_{{ tag.tag_id }}">
-                {% if tag.case_id == case_id|int %}
+                {% if tag.case_id == case.case_id|int %}
                     <td><button type="button" id={{ tag.tag_id }} class="close remove-tag-x" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button></td>
@@ -55,23 +61,30 @@
                 <!--case name-->
                 <td>{{ tag.tag_name }}:</td>
                 <td>
-                    <button class="tag-download" type="button" value='{{ tag.matching_clips }}'>
+                    <button class="tag-download" type="button" id='downloadClips' value='{{ tag.matching_clips }}'>
                         <span>
                         Download {{ tag.tag_name }} clips ({{ tag_counts[tag.tag_name] }})</span>
                     </button>
+                </td>
+                <td>
+                    <button class="tag-download" type="button" id='createDeck' value='{{ tag.matching_clips }}'>
+                        <span>
+                        Create {{ tag.tag_name }} Deck ({{ tag_counts[tag.tag_name] }})</span>
+                    </button>
+                </td>
             </tr>
         {% endfor %}
     </table>
 
 
-    <textarea id="new_tags_input" placeholder="Mock Trial, Appeal, Arbitration"></textarea></br>
+    <textarea id="new_tags_input" placeholder="Mock Trial, Appeal, Arbitration" class='settings-input'></textarea></br>
     <button id='add_tags'>Add new tags</button>
 
 </div>
 
-<div class='col-lg-6' id='case-messages'>
+<div class='col-lg-8' id='case-messages'>
     <h1>Case messages</h1>
-    <textarea id='new-message' class='mess-window' placeholder='Send team message'></textarea>
+    <textarea id='new-message' class='settings-input mess-window' placeholder='Send team message'></textarea>
 </br>
     <button id='send-message'>Send</button>
     <div id='all-messages' class='mess-window'>
@@ -88,156 +101,16 @@
     </div>
 </div>
 
+<!--SOCKET IO CHAT-->
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
 <script src='../static/js/sockets.js'></script>
+<script src='../static/js/socketMessage.js'></script>
 
-<script>
-    function sendCaseMessage(evt){
-        var new_mess = $('#new-message').val()
-
-        var formInputs = {
-            'new_mess': new_mess,
-            'case_id': {{ case_id }},
-        }
-        $.post('/send-casemessage', formInputs, function (results) {
-            console.log('message sent!')
-        });
-
-    }
-
-    function showNewMessage(results){
-        $('#new-message').html("")
-
-        mess_html = '<div class="case-mess" id="div_' + results.mess_id + '">'
-        //add a remove button for the user who sent it
-        if (results.user_id == currUser){
-            mess_html = mess_html + '<button class="mess-remove close" id=' + results.mess_id + ' aria-label="Close"><span aria-hidden="true">&times;</span></button>'
-        }
-        mess_html = mess_html +  '<strong>' + results.user_name + '</strong> </br>' + results.mess_text + '</div>'
-
-        $('#all-messages').prepend(mess_html)
-        $('#'+results.mess_id).on('click', removeMessage)
-    }
-
-    $('#send-message').on('click', sendCaseMessage)
-
-
-    function removeMessage(evt){
-        var mess_target = evt.currentTarget.id
-
-        var formInputs = {
-            'mess_id': mess_target,
-        }
-
-        $.post('/remove-casemessage', formInputs, function (results) {
-            console.log("removed")
-        });
-    }
-
-    $(".mess-remove").on('click', removeMessage)
-</script>
-
-<script>
-    function updateUsers (){
-        var new_users = $('#new_users_input').val()
-        console.log(new_users)
-        var formInputs = {
-            'new_users': new_users,
-            'case_id': {{ case_id }},
-        }
-        console.log('clicked');
-        $.post('/add-usercase', formInputs, function (results) {
-            //refresh the page after adding users
-            $('#user-table').append(results)
-            $('.new-user-x').on('click', deleteUser)
-            $('#new_users_input').val('');
-        });
-    }
-    $('#add_users').on('click', updateUsers)
-</script>
-
+<!--Get a current time stamp for file naming-->
 <script src='../static/js/getCurrTime.js'></script>
-
-<script>
-    function downloadTaggedClips(evt){
-        var clips_to_get = evt.currentTarget.value;
-
-        // get the current time for the zip
-        var currTime = getCurrentTime();
-        
-        var formInputs = {
-            'case_id': {{ case_id }},
-            'clips': String(clips_to_get),
-            'call_func': "downloadClips",
-            'vid_type': 'clip',
-            'curr_time': currTime
-        }
-
-        $.post('/handle-clips', formInputs, function() {
-            console.log('request complete')
-        });
-    }
-
-    $(".tag-download").on('click', downloadTaggedClips)
-</script>
-
-<script>
-    function deleteUser(evt){
-        var confirm_delete = confirm("Are you sure you want to remove this user? This action cannot be undone.")
-
-        if (confirm_delete === true){
-            var user = evt.currentTarget.id;
-            var formInputs = {
-                'del_user': user,
-                'case_id': {{ case_id }}
-            }
-            $.post('/remove-usercase', formInputs, function(results) {
-                //get id for tr holding that user
-                var user_row = "#User_" + user;
-                $(user_row).remove()
-                console.log(results)
-            });
-        }
-
-    }
-    $('.remove-user-x').on('click', deleteUser)
-</script>
-
-<script>
-    function updateTags (){
-        var new_tags = $('#new_tags_input').val()
-        var formInputs = {
-            'new_tags': new_tags,
-            'case_id': {{ case_id }},
-        }
-        $.post('/add-tags', formInputs, function () {
-            //refresh the page after adding users
-            location.reload();
-        });
-    }
-    $('#add_tags').on('click', updateTags)
-</script>
-
-<script>
-    function deleteTag (evt){
-        var confirm_delete = confirm("Are you sure you want to remove this tag? This action cannot be undone and will remove all associations with this tag.")
-
-        if (confirm_delete === true){
-            var tag = evt.currentTarget.id;
-            var formInputs = {
-                'del_tag': tag,
-                'case_id': {{ case_id }}
-            }
-            $.post('/delete-tag', formInputs, function(results) {
-                //get id for tr holding that user
-                var tag_row = "#Tag_" + tag;
-                $(tag_row).remove()
-                console.log(results)
-            });
-        }
-
-    }
-    $('.remove-tag-x').on('click', deleteTag)
-</script>
+<!--adding/removing tags/downloading clips by tag-->
+<script src='../static/js/tags.js'></script>
+<!--Adding/deleting users-->
+<script src='../static/js/caseUsers.js'></script>
 
 {% endblock %}

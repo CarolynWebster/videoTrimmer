@@ -13,6 +13,8 @@
     border-radius: 8px;
     width: 100px;
     text-align: left;
+    border-style: none;
+    margin: 3px;
 }
 
 button, i {
@@ -29,6 +31,10 @@ button, i {
 
 .center-column {
   text-align: center;
+}
+
+.settings-input {
+  width: 100%;
 }
 
 /* Sortable tables */

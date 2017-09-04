@@ -234,7 +234,7 @@ def show_case_settings(case_id):
         case_mess = CaseMessage.query.filter(CaseMessage.case_id == case_id).order_by(CaseMessage.mess_id.desc()).all()
 
 
-        return render_template('case-settings.html', users=users, case_id=case_id, tags=tags, owner=owner, tag_counts=tag_counts, case_mess=case_mess)
+        return render_template('case-settings.html', users=users, case=case, tags=tags, owner=owner, tag_counts=tag_counts, case_mess=case_mess)
     else:
         flash("You don't have permission to view that case")
         return redirect('/cases')

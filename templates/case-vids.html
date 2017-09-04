@@ -2,13 +2,15 @@
 {% block title %}Case List{% endblock %}
 
 {% block addToHead %}
-    
+    <script>var typeOfVid = "video"</script>
 {% endblock %}
 
 {% block content %}
-<h1>Case name: {{ case.case_name }}</h1>
+<h1>{{ case.case_name }}</h1>
 <p><a href='/case-settings/{{ case.case_id}}'>Case Dashboard</a></p>
 <a href="/upload-video?case_id={{ case.case_id }}"><button>Upload a new video</button></a>
+<button type="button" id='downloadClips' value="Download">Download Videos</button>
+<button type="button" id='deleteClips' value="Delete">Delete Videos</button>
 <input type="text" id="table-search" onkeyup="filterTable(5)" placeholder="Search...">
 <table data-toggle="table" class="table table-sortable" id="clip-table">
     <thead>
@@ -63,96 +65,18 @@
     </tbody>
 </table>
 
-<button type="button" id='downloadClips' value="Download">Download Videos</button>
-<button type="button" id='deleteClips' value="Delete">Delete Videos</button>
+<!--JS-->
+<!--Table sort-->
+<script src="{{ url_for('static', filename='js/table_sort.js') }}"></script>
 
-<script src="/static/js/table_sort.js"></script>
-
+<!--Socket IO -->
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
 <script src='../static/js/sockets.js'></script>
 
-<script>
+<!--Collecting checked videos/clips-->
+<script src="{{ url_for('static', filename='js/collectChecks.js') }}"></script>
+<script src="{{ url_for('static', filename='js/getCurrTime.js') }}"></script>
 
-function showScript(evt) {
-    vid_id = evt.currentTarget.id;
-
-    var params = 'scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no,width=900,height=600,left=-1000,top=-1000';
-
-    window.open('/show-transcript/'+vid_id, 'Transcript', params)
-}
-
-function addScript(evt) {
-    vid_id = evt.currentTarget.id;
-
-    var params = 'scrollbars=yes,resizable=yes,status=no,location=no,toolbar=no,menubar=no,width=900,height=600,left=-1000,top=-1000';
-
-    window.open('/add-transcript/'+vid_id, 'Add Transcript', params)
-}
-
-$('.tscriptTrue').on('click', showScript)
-$('.tscriptFalse').on('click', addScript)
-
-function collect_checked_vids(evt){
-
-    //get an array of all the checked clips
-    var checked_vids = $('.vidcheck:checkbox:checked')
-    var vidsToDL = [];
-    for(var i = 0; i < checked_vids.length; i++){
-        console.log(checked_vids[i].value)
-        vidsToDL.push(checked_vids[i].value)
-    }
-    vids = vidsToDL.toString();
-    console.log(vids)
-    var formInputs = {
-        'clips': vids,
-        'call_func': evt.currentTarget.id,
-        'vid_type': "video"
-    }
-
-    var all_cboxes = $('.vidcheck:checkbox')
-    all_cboxes.prop('checked', false);
-
-    if (evt.currentTarget.id == 'downloadClips') {
-        console.log("download")
-        //send direction to server
-        //download function called from the handle-clips route
-        $.post('/handle-clips', formInputs, function() {
-        console.log('request complete')
-        location.reload();
-        });
-    }
-    else if (evt.currentTarget.id == 'deleteClips') {
-        console.log("delete")
-        var confirm_delete = confirm('Are you sure you want to delete '+checked_vids.length+' clips?\nThis action cannot be undone.');
-        //send direction to server
-        //delete function called from the handle-clips route
-        if (confirm_delete == true)
-            $.post('/handle-clips', formInputs, function() {
-                console.log('request complete')
-                location.reload();
-            });
-    }
-}
-
-function toggleChecks(evt) {
-    var status = evt.currentTarget.checked
-    console.log(status)
-    var all_cboxes = $('.vidcheck:checkbox')
-    if (status == true) {
-        console.log("if")
-        all_cboxes.prop('checked', true);
-    }
-    else {
-        console.log("else")
-        all_cboxes.prop('checked', false);
-    }
-
-}
-
-$('#downloadClips').on('click', collect_checked_vids)
-$('#deleteClips').on('click', collect_checked_vids)
-$('#select-all').on('change', toggleChecks)
-
-
-</script>
+<!--Transcript upload/removal-->
+<script src="{{ url_for('static', filename='js/transcript.js') }}"
 {% endblock %}
