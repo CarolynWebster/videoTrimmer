@@ -2,15 +2,32 @@
 {% block title %}Case List{% endblock %}
 
 {% block addToHead %}
-    <script>var typeOfVid = "video"</script>
+    <script>
+        var typeOfVid = "video";
+        var vidID = undefined;
+    </script>
 {% endblock %}
 
 {% block content %}
-<h1>{{ case.case_name }}</h1>
+<div class='case-banner'>
+    <h1 class='case-name'>
+        <a href = "../cases/{{ case.case_id }}">{{ case.case_name }}</a>
+        <i class="fa fa-cog case-gear" aria-hidden="true"></i>
+        <i class="fa fa-comments-o case-gear" aria-hidden="true"></i> 
+    </h1>
+</div>
+<div class='accent-bar'></div>
 <p><a href='/case-settings/{{ case.case_id}}'>Case Dashboard</a></p>
 <a href="/upload-video?case_id={{ case.case_id }}"><button>Upload a new video</button></a>
-<button type="button" id='downloadClips' value="Download">Download Videos</button>
-<button type="button" id='deleteClips' value="Delete">Delete Videos</button>
+<!-- <button type="button" id='downloadClips' value="Download">Download Videos</button>
+<button type="button" id='deleteClips' value="Delete">Delete Videos</button> -->
+
+<!--download individual files-->
+<button type="button" id='downloadClips' value="Download" class='clear-btn small-btn'>
+    <svg class="vidclip-handler" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 32.81"><title>download</title><path d="M30,32.81H0V23a1.41,1.41,0,0,1,2.81,0v7H27.19V23A1.41,1.41,0,0,1,30,23Z"/><path d="M15,23a1.41,1.41,0,0,1-1.41-1.41V1.41a1.41,1.41,0,0,1,2.81,0V21.6A1.41,1.41,0,0,1,15,23Z"/><polygon points="10.79 20.37 15 27.66 19.21 20.37 10.79 20.37"/></svg></button>
+<!--delete btn-->
+<button type="button" id='deleteClips' value="Delete" class='clear-btn small-btn'><svg class="vidclip-handler" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 27.1 30"><title>delete</title><path d="M25.4,6.29h-4.6V2.42A2.42,2.42,0,0,0,18.39,0H8.71A2.42,2.42,0,0,0,6.29,2.42V6.29H1.69a1.69,1.69,0,0,0,0,3.39H2.9v17.9H3A2.49,2.49,0,0,0,5.46,30H21.64a2.49,2.49,0,0,0,2.48-2.42h.08V9.68H25.4a1.69,1.69,0,0,0,0-3.39ZM9.19,25.65a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0Zm5.81,0a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0Zm5.81,0a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0ZM9.19,4.35A1.45,1.45,0,0,1,10.65,2.9h5.81A1.45,1.45,0,0,1,17.9,4.35V6.29H9.19Z"/></svg></button>
+
 <input type="text" id="table-search" onkeyup="filterTable(5)" placeholder="Search...">
 <table data-toggle="table" class="table table-sortable" id="clip-table">
     <thead>
@@ -76,6 +93,7 @@
 <!--Collecting checked videos/clips-->
 <script src="{{ url_for('static', filename='js/collectChecks.js') }}"></script>
 <script src="{{ url_for('static', filename='js/getCurrTime.js') }}"></script>
+<script src="{{url_for ('static', filename='js/showAlert.js') }}"></script>
 
 <!--Transcript upload/removal-->
 <script src="{{ url_for('static', filename='js/transcript.js') }}"

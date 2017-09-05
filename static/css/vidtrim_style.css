@@ -1,3 +1,14 @@
+a {
+  color: #7f9cc8;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Oswald', sans-serif;
+}
+
+p, span, button{
+  font-family: 'Muli', sans-serif;
+}
 .btn-circle {
   width: 30px;
   height: 30px;
@@ -9,17 +20,97 @@
 }
 
 .tag-btn {
-    background-color: #42bcf4;
-    border-radius: 8px;
+    background-color: #efefef;
+    border-radius: 6px;
     width: 100px;
     text-align: left;
     border-style: none;
     margin: 3px;
 }
 
-button, i {
-  text-align: right;
+.tag-close {
+  vertical-align: top;
+  font-size: 14px;
+  opacity: 0;
 }
+
+.tag-btn:hover > .tag-close{
+  opacity: .2;
+}
+
+.gray-btn {
+  background-color: #7f7f7f;
+  text-align: center;
+  border-radius: 3px;
+  border-style: none;
+  margin: 5px;
+  color: white;
+  width: 100%;
+}
+
+.blue-btn {
+  background-color: #7f9cc8;
+  text-align: center;
+  border-radius: 3px;
+  border-style: none;
+  margin: 5px;
+  color: white;
+  width: 100%;
+}
+
+.clear-btn {
+  background-color: rgba(255, 255, 255, 0);
+  border-style: none;
+}
+
+.small-btn {
+  width: 75px;
+}
+
+.med-btn {
+  width: 150px;
+}
+
+.lg-btn {
+  width: 250px;
+}
+
+.case-name, .case-name a{
+  color: #f15a24;
+  /*color: #7f7f7f;*/
+  display: inline;
+}
+
+.case-banner {
+  /*background-color: #ebebeb;*/
+  margin-left: -15px;
+/*  margin-top: -15px;*/
+  padding-top: 3px;
+  padding-bottom: 3px;
+  padding-left: 15px;
+  padding-right: 15px;
+  width: calc(100% + 30px);
+  display: block;
+  text-align: left;
+}
+
+.case-gear {
+  float: right;
+  vertical-align: middle;
+  display: inline;
+  color: #7f7f7f;
+  padding: 1px;
+  margin-right: 5px;
+}
+
+.vidclip-handler {
+  display: inline;
+  fill: #7f7f7f;
+  height: 30px;
+}
+/*button i {
+  text-align: right;
+}*/
 
 .tscriptTrue {
   color: #033077;
@@ -59,7 +150,7 @@ table.sortable thead {
 }
 
 .logininput {
-  width: 200;
+  width: 200px;
 }
 
 .loginbtn {
@@ -92,6 +183,76 @@ table.sortable thead {
 #all-messages {
   overflow: scroll;
   height:500px;
+}
+
+body {
+  background-color: #ebebeb;
+  padding: 0;
+  margin: 0;
+}
+
+#container {
+  border-radius: 10px;
+  background-color: #fff;
+  padding: 15px;
+  margin: 15px;
+/*  margin-left: auto;
+  margin-right: auto;*/
+  box-shadow: 0 0 3px #212121;
+}
+
+.navbar {
+  background-color: white;
+  box-shadow: 0 0 4px #212121;
+  padding: 0;
+  border-radius: 0;
+  border: 0;
+}
+
+.accent-bar {
+  /*tfp orange*/
+  background-color: #f15a24; 
+  height: 3px;
+  width: calc(100% + 30px);
+  margin-left: -15px;
+}
+
+#table-search{
+  float: right;
+  width: 200px;
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+    border-bottom: 1px dotted black; /* If you want dots under the hoverable text */
+}
+
+.tooltip .tooltiptext {
+    width: 120px;
+    bottom: 100%;
+    left: 50%; 
+    margin-left: -60px; /* Use half of the width (120/2 = 60), to center the tooltip */
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 120px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    padding: 5px 0;
+    border-radius: 6px;
+ 
+    /* Position the tooltip text - see examples below! */
+    position: absolute;
+    z-index: 1;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+    visibility: visible;
 }
 
 /*body {

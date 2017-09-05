@@ -8,47 +8,48 @@ function collect_checked_vids(evt){
     showAlert();
 
     //get an array of all the checked clips
-    var checked_vids = $('.vidcheck:checkbox:checked')
+    var checked_vids = $('.vidcheck:checkbox:checked');
     var vidsToDL = [];
     for(var i = 0; i < checked_vids.length; i++){
-        console.log(checked_vids[i].value)
-        vidsToDL.push(checked_vids[i].value)
+        console.log(checked_vids[i].value);
+        vidsToDL.push(checked_vids[i].value);
     }
     vids = vidsToDL.toString();
-    console.log(vids)
+    console.log(vids);
     var formInputs = {
         'clips': vids,
-        'vid_id': {{ main_vid.vid_id }},
+        'vid_id': vidID,
         'call_func': evt.currentTarget.id,
         'vid_type': typeOfVid,
         'curr_time': currTime
-    }
+    };
 
-    var all_cboxes = $('.vidcheck:checkbox')
+    var all_cboxes = $('.vidcheck:checkbox');
     all_cboxes.prop('checked', false);
 
-    if (evt.currentTarget.id == 'stitchClips' | 
-        evt.currentTarget.id == 'downloadClips' | 
+    if (evt.currentTarget.id == 'stitchClips' |
+        evt.currentTarget.id == 'downloadClips' |
         evt.currentTarget.id == 'createDeck') {
-        console.log("handle-clips")
+        console.log("handle-clips");
         //send direction to server
         //download function called from the handle-clips route
         $.post('/handle-clips', formInputs, function() {
-            console.log('request complete')
-            $('#success-message').fadeOut()
+            console.log('request complete');
+            $('#success-message').fadeOut();
         });
     }
     else if (evt.currentTarget.id == 'deleteClips') {
-        console.log("delete")
+        console.log("delete");
         var confirm_delete = confirm('Are you sure you want to delete '+checked_vids.length+' clips?\nThis action cannot be undone.');
         //send direction to server
         //delete function called from the handle-clips route
-        if (confirm_delete == true)
+        if (confirm_delete === true){
             $.post('/handle-clips', formInputs, function() {
-                console.log('request complete')
-                $('#success-message').fadeOut()
-                location.reload()
+                console.log('request complete');
+                $('#success-message').fadeOut();
+                location.reload();
             });
+        }
     }
 }
 
@@ -110,10 +111,10 @@ function collect_checked_vids(evt){
 // }
 
 function toggleChecks(evt) {
-    var status = evt.currentTarget.checked
-    console.log(status)
-    var all_cboxes = $('.vidcheck:checkbox')
-    if (status == true) {
+    var status = evt.currentTarget.checked;
+    console.log(status);
+    var all_cboxes = $('.vidcheck:checkbox');
+    if (status === true) {
         //all_cboxes.prop('checked', true);
         for (var c=0; c < all_cboxes.length; c++) {
             if (all_cboxes[c].offsetHeight > 0) {
@@ -129,12 +130,12 @@ function toggleChecks(evt) {
 
 function uncheckAll() {
     //get all the checkboxes
-    checkboxes = $('.cbox')
+    checkboxes = $('.cbox');
     checkboxes.prop('checked', false);
 }
 
-$('#stitchClips').on('click', collect_checked_vids)
-$('#downloadClips').on('click', collect_checked_vids)
-$('#deleteClips').on('click', collect_checked_vids)
-$('#createDeck').on('click', collect_checked_vids)
-$('#select-all').on('change', toggleChecks)
+$('#stitchClips').on('click', collect_checked_vids);
+$('#downloadClips').on('click', collect_checked_vids);
+$('#deleteClips').on('click', collect_checked_vids);
+$('#createDeck').on('click', collect_checked_vids);
+$('#select-all').on('change', toggleChecks);

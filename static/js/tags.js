@@ -94,7 +94,7 @@ function addTags(evt){
         console.log(results);
         // returns dict with {tag_id, clip_id, tag_name}
         var tagClipId = results.tag_id+"_"+results.clip_id;
-        var tagBtn = "<button class='tag-btn' value='"+tagClipId+"' id='"+tagClipId+"'>"+results.tag_name+"<i class='glyphicon glyphicon-remove'></i></button>";
+        var tagBtn = "<button class='tag-btn' value='"+tagClipId+"' id='"+tagClipId+"'>"+results.tag_name+"<i class='glyphicon glyphicon-remove close tag-close'></i></button></br>";
         $(tdTarget).append(tagBtn);
         //add event listener to new btn
         $('#'+tagClipId).on('click', removeTag);

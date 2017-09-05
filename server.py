@@ -844,14 +844,16 @@ def show_all_clips(vid_id):
             if clip.start_at is not None:
                 start_time = clip.start_at
                 if len(start_time) > 8:
-                    start_time = start_time[:-4]
+                    clip.start_at = start_time = start_time[:-4]
 
                 end_time = clip.end_at
                 if len(end_time) > 8:
-                    end_time = end_time[:-4]
+                    clip.end_at = end_time = end_time[:-4]
 
                 start_at = datetime.strptime(start_time, '%H:%M:%S')
                 end_at = datetime.strptime(end_time, '%H:%M:%S')
+
+
                 clip.duration = end_at - start_at
             else:
                 clip.duration = '--'
