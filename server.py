@@ -240,6 +240,29 @@ def show_case_settings(case_id):
         return redirect('/cases')
 
 
+@app.route('/case-messages/<case_id>')
+@login_required
+def show_case_messages(case_id):
+    """Shows messages for chosen case"""
+
+    # check if the user has permission to view this case
+    user_permitted = validate_usercase(case_id, g.current_user.user_id)
+
+    case = Case.query.get(case_id)
+    owner_id = case.owner_id
+    owner = User.query.get(owner_id)
+
+    if user_permitted:
+
+        # get the case messages for this case
+        case_mess = CaseMessage.query.filter(CaseMessage.case_id == case_id).order_by(CaseMessage.mess_id.desc()).all()
+
+        return render_template('case-messages.html', case=case, owner=owner, case_mess=case_mess)
+    else:
+        flash("You don't have permission to view that case")
+        return redirect('/cases')
+
+
 @app.route('/send-casemessage', methods=["POST"])
 @login_required
 def send_casemessage():
@@ -410,7 +433,7 @@ def handle_login():
     if user_check:
         if user_check.password == password:
             #set flash message telling them login successful
-            flash("You have successfully logged in")
+            # flash("You have successfully logged in")
             #add user's ID num to the session
             session['user_id'] = user_check.user_id
             #send them to their own page
@@ -433,7 +456,7 @@ def logout_user():
     session.clear()
 
     # tell the user they are logged out
-    flash("You have successfully logged out")
+    # flash("You have successfully logged out")
 
     return redirect('/')
 
@@ -905,6 +928,6 @@ if __name__ == "__main__":
 
 
     # Use the DebugToolbar
-    DebugToolbarExtension(app)
+    # DebugToolbarExtension(app)
     socketio.run(app, port=5000, host='0.0.0.0')
     # app.run(port=5000, host='0.0.0.0')

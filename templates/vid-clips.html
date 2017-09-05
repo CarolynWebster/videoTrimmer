@@ -10,37 +10,77 @@
 {% endblock %}
 
 {% block content %}
+
 <div class='case-banner'>
     <h1 class='case-name'>
         <a href = "../cases/{{ main_vid.case.case_id }}">{{ main_vid.case.case_name }}</a>
-        <i class="fa fa-cog case-gear" aria-hidden="true"></i>
-        <i class="fa fa-comments-o case-gear" aria-hidden="true"></i> 
     </h1>
+
+    <!--case settings btn-->
+    <button type="button" id='settings' class='clear-btn case-gear' value="{{ main_vid.case.case_id }}">
+        <a href="#" class='tooltips'>
+            <span>Case Settings</span>
+        <h1 class='case-name'>
+            <i class="fa fa-cog" aria-hidden="true"></i>
+        </h1></a>
+    </button>
+        
+    <!--case messages btn-->
+    <button type="button" id='messages' class='clear-btn case-gear' value="{{ main_vid.case.case_id }}">
+        <a href="#" class='tooltips'>
+            <span>Case Messages</span>
+        <h1 class='case-name'>
+            <i class="fa fa-comments-o" aria-hidden="true"></i>
+        </h1></a>
+    </button>
 </div>
 <div class='accent-bar'></div>
-<p><a href='/case-settings/{{ main_vid.case.case_id}}'>Case Dashboard</a></p>
+
 
 <div id='alerts'><div class="alert alert-success alert-dismissable" id="success-message"><a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a><strong>Success!</strong> Your request has been sent.</div></div>
 
 <!--clip handlers-->
-<a href="/trim-video/{{ main_vid.vid_id }}"><button class='gray-btn med-btn'>Trim new clips</button></a>
+<a href="/trim-video/{{ main_vid.vid_id }}" class='tooltips'>
+    <span>Trim New Clips</span>
+    <button class='clear-btn small-btn'>
+        <svg class="vidclip-handler" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26.74 30"><title>trim_vid</title><path d="M13.48,24.13l-2.64-1.76a.5.5,0,0,0-.69.14L8.09,25.59a.5.5,0,0,0,.14.69L10.87,28a.5.5,0,0,0,.69-.14l2.05-3.08A.5.5,0,0,0,13.48,24.13ZM11,26.94,9.2,25.73l1.5-2.25,1.81,1.2Z"/><path d="M16.27,19.94l-2.64-1.76a.5.5,0,0,0-.69.14L10.88,21.4a.5.5,0,0,0,.14.69l2.64,1.76a.5.5,0,0,0,.69-.14l2.05-3.08a.5.5,0,0,0-.14-.69ZM13.8,22.74,12,21.54l1.5-2.25,1.81,1.2Z"/><path d="M19.06,15.74,16.42,14a.5.5,0,0,0-.69.14l-2.05,3.09a.5.5,0,0,0,.14.69l2.64,1.76a.5.5,0,0,0,.69-.14l2.05-3.08A.5.5,0,0,0,19.06,15.74Zm-2.47,2.81-1.81-1.2,1.5-2.25,1.81,1.2Z"/><path d="M9.13,2A1.79,1.79,0,1,0,9,4.55,1.79,1.79,0,0,0,9.13,2Zm-.8,1.79a.81.81,0,0,1-1.12-.06.79.79,0,1,1,1.12.06Z"/><path d="M3.22,15.06a1.83,1.83,0,0,0-.35,0,1.79,1.79,0,1,0,.35,0Zm.66,2.23a.79.79,0,0,1-.5.34l-.16,0a.79.79,0,0,1-.15-1.56l.16,0a.79.79,0,0,1,.66,1.23Z"/><circle cx="12.07" cy="12.02" r="0.61"/><path d="M26.73,7.07a.5.5,0,0,0-.21-.32L21.84,3.64a.5.5,0,0,0-.69.14L18,8.49,12.64,9.56,11.53,8.33,9.42,6A3.16,3.16,0,0,0,10,5.61a3.22,3.22,0,1,0-4.55-.23l.17.16a12,12,0,0,1,3.74,5.7,11.87,11.87,0,0,1-6.5,2.43l-.23,0a3.22,3.22,0,0,0,.63,6.38A3.24,3.24,0,0,0,3.85,20a3.22,3.22,0,0,0,2.33-4.43L9.26,15,11,14.63l1.7,1.88-6.39,9.6a.5.5,0,0,0,.14.69l4.68,3.12a.5.5,0,0,0,.69-.14l5.57-8.37a4.1,4.1,0,0,0,2,.54h0a4.09,4.09,0,0,0,2.75-1.06l0,0a.5.5,0,0,0,0-.71L19.9,17.6l3.66-5.5,1.33-.27a.5.5,0,0,0,.39-.59v0a4.07,4.07,0,0,0-.39-1.09l1.78-2.67A.5.5,0,0,0,26.73,7.07ZM6.26,4.8l-.1-.09a2.22,2.22,0,1,1,3.13.16,2.19,2.19,0,0,1-.85.48.5.5,0,0,0-.23.82L10.79,9l.74.82a5,5,0,0,0-1.38.71A13.37,13.37,0,0,0,6.26,4.8Zm5.85,9.6,2.26-.45-1.14,1.7Zm9,6a3.09,3.09,0,0,1-1.71.51h0a3.09,3.09,0,0,1-1.47-.38l1.4-2.11ZM11.23,28.8,7.39,26.24l8.37-12.58.68-.14a.5.5,0,0,0,.16.18l2.64,1.76a.5.5,0,0,0,.69-.14l1.92-2.89.31-.06Zm6.51-15.54,2.72-.55-1.09,1.64ZM9.07,14l-3.77.74a.5.5,0,0,0-.3.79A2.22,2.22,0,0,1,3.66,19,2.21,2.21,0,0,1,1,17.28a2.22,2.22,0,0,1,1.73-2.61l.15,0a12.46,12.46,0,0,0,7.38-3,4,4,0,0,1,1.94-1L20.64,9a3.09,3.09,0,0,1,3.52,2Zm12-6.06.81-1.22,1.81,1.2-.37.56a4.07,4.07,0,0,0-2-.55Zm3.2,1.31-.16-.16.68-1a.5.5,0,0,0-.14-.69L22,5.6a.5.5,0,0,0-.69.14l-1.6,2.41-.31.06,2.3-3.46,3.85,2.56Z"/></svg>
+</button></a>
 
+<!--stitch clips-->
 <button type="button" id='stitchClips' value="Stitch" class='clear-btn small-btn'>
-    <svg class="vidclip-handler" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 32.81"><title>download_stitch</title><path d="M15,23a1.41,1.41,0,0,1-1.4-1.36C13.08,5.38,3.51,2.8,3.41,2.77A1.41,1.41,0,0,1,4.09,0c.48.12,11.74,3.14,12.29,21.51A1.41,1.41,0,0,1,15,23Z"/><polygon points="10.7 20.42 15 27.66 19.12 20.32 10.7 20.42"/><path d="M15,23h0a1.41,1.41,0,0,1-1.36-1.45C14.17,3.19,25.43.16,25.91,0a1.41,1.41,0,0,1,.69,2.73c-.41.11-9.68,2.75-10.17,18.87A1.41,1.41,0,0,1,15,23Z"/><polygon points="10.88 20.32 15 27.66 19.3 20.42 10.88 20.32"/><path d="M30,32.81H0V23a1.41,1.41,0,0,1,2.81,0v7H27.19V23A1.41,1.41,0,0,1,30,23Z"/></svg>
+    <a href='#' class='tooltips'>
+        <span>Combine/Download</span>
+        <svg class='vidclip-handler' data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31.19 33"><title>stitch</title><path d="M15.41,20.64a2,2,0,0,1-2-1.81C12.14,5.17,3.94,4,3.86,3.94a2,2,0,1,1,1-3.88c.45.11,11,1.94,12.58,18.39a2,2,0,0,1-1.8,2.18Z"/><polygon points="9.25 17.11 15.59 27.25 21.2 16.68 9.25 17.11"/><path d="M15.59,24.56a2,2,0,0,1-2-2C13.59,2.48,25.84.19,26.36.06a2,2,0,0,1,1,3.88c-.44.12-9.75,1.87-9.75,18.63A2,2,0,0,1,15.59,24.56Z"/><path d="M31.19,33H0V22.56a2,2,0,0,1,4,0V29H27.19V22.56a2,2,0,0,1,4,0Z"/></svg>
+    </a>
 </button>
+
 <!--download individual files-->
 <button type="button" id='downloadClips' value="Download" class='clear-btn small-btn'>
-    <svg class="vidclip-handler" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 32.81"><title>download</title><path d="M30,32.81H0V23a1.41,1.41,0,0,1,2.81,0v7H27.19V23A1.41,1.41,0,0,1,30,23Z"/><path d="M15,23a1.41,1.41,0,0,1-1.41-1.41V1.41a1.41,1.41,0,0,1,2.81,0V21.6A1.41,1.41,0,0,1,15,23Z"/><polygon points="10.79 20.37 15 27.66 19.21 20.37 10.79 20.37"/></svg></button>
+    <a href='#' class='tooltips'>
+        <span>Download Clip(s)</span>
+        <svg class='vidclip-handler' data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31.19 32"><title>download</title><path d="M31.19,32H0V21.56a2,2,0,0,1,4,0V28H27.19V21.56a2,2,0,0,1,4,0Z"/><path d="M15.59,19.64a2,2,0,0,1-2-2V2a2,2,0,0,1,4,0V17.64A2,2,0,0,1,15.59,19.64Z"/><polygon points="9.61 15.89 15.59 26.25 21.58 15.89 9.61 15.89"/></svg>
+    </a>
+</button>
+
 <!--delete btn-->
-<button type="button" id='deleteClips' value="Delete" class='clear-btn small-btn'><svg class="vidclip-handler" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 27.1 30"><title>delete</title><path d="M25.4,6.29h-4.6V2.42A2.42,2.42,0,0,0,18.39,0H8.71A2.42,2.42,0,0,0,6.29,2.42V6.29H1.69a1.69,1.69,0,0,0,0,3.39H2.9v17.9H3A2.49,2.49,0,0,0,5.46,30H21.64a2.49,2.49,0,0,0,2.48-2.42h.08V9.68H25.4a1.69,1.69,0,0,0,0-3.39ZM9.19,25.65a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0Zm5.81,0a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0Zm5.81,0a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0ZM9.19,4.35A1.45,1.45,0,0,1,10.65,2.9h5.81A1.45,1.45,0,0,1,17.9,4.35V6.29H9.19Z"/></svg></button>
+<button type="button" id='deleteClips' value="Delete" class='clear-btn small-btn'>
+    <a href='#' class='tooltips'>
+        <span>Delete Clip(s)</span>
+        <svg class="vidclip-handler" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 27.1 30"><title>delete</title><path d="M25.4,6.29h-4.6V2.42A2.42,2.42,0,0,0,18.39,0H8.71A2.42,2.42,0,0,0,6.29,2.42V6.29H1.69a1.69,1.69,0,0,0,0,3.39H2.9v17.9H3A2.49,2.49,0,0,0,5.46,30H21.64a2.49,2.49,0,0,0,2.48-2.42h.08V9.68H25.4a1.69,1.69,0,0,0,0-3.39ZM9.19,25.65a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0Zm5.81,0a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0Zm5.81,0a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0ZM9.19,4.35A1.45,1.45,0,0,1,10.65,2.9h5.81A1.45,1.45,0,0,1,17.9,4.35V6.29H9.19Z"/></svg>
+    </a>
+</button>
 
 <button type="button" id='createDeck' value="Deck" class='clear-btn small-btn'>
-    <svg class="vidclip-handler" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41.36 30.78"><title>make_deck</title><path d="M41.36,26H38.63a.39.39,0,1,1,0-.78h1.94V.78h-35V2.68a.39.39,0,0,1-.78,0V0H41.36Z"/><path d="M39,28.38H36.08a.39.39,0,0,1,0-.78h2.09V3.19h-35v2a.39.39,0,1,1-.78,0V2.4H39Z"/><path d="M36.55,30.78H0V4.8H36.55ZM.78,30h35V5.59H.78Z"/><path d="M17.41,24.9a2.06,2.06,0,0,0-1.23-1.64c-1.12-.45-3.89-1.42-3.89-1.42A2.42,2.42,0,0,1,10,23.29a2.42,2.42,0,0,1-2.28-1.45s-3.09,1-4.21,1.42A2.06,2.06,0,0,0,2.29,24.9Z"/><path d="M12.29,21.84A2.42,2.42,0,0,1,10,23.29a2.42,2.42,0,0,1-2.28-1.45v-1.6h4.56Z"/><path d="M10.3,11.38c3.15,0,2.82,5,2.82,5a26.38,26.38,0,0,1-.11,3.2c-.14.48-1.12,2.42-3,2.42s-2.82-1.94-3-2.42A26.38,26.38,0,0,1,7,16.4s-.33-5,2.82-5Z"/><path d="M7,16.43a.64.64,0,0,0-.4-.21c-.25,0-.36.37-.18.71s.25.41.18.63.09.51.4.37C7,17.24,7,16.57,7,16.43Z"/><path d="M13.54,16.22a.67.67,0,0,0-.42.23c0,.17,0,.81,0,1.47.33.16.49-.15.42-.36s0-.3.18-.63S13.8,16.22,13.54,16.22Z"/><path d="M13,16.54l.19,0a9.78,9.78,0,0,1,.14-1.88c.09-.54.13-1.47-.24-1.8a.31.31,0,0,0,.15-.27,2.27,2.27,0,0,0-.6-.69c-.27-.2-.86-.14-1-.44.09-.11.24-.08.35-.17a3,3,0,0,0-1.37-.06c-.16,0-.32.16-.47.19s-.29,0-.43,0a1.37,1.37,0,0,0,.35-.28,2.07,2.07,0,0,0-.75,0c-.23,0-.49,0-.71.07a2,2,0,0,0-.4.34,3.47,3.47,0,0,1-.66.36,1.16,1.16,0,0,0-.62.63,3.9,3.9,0,0,0-.32,1,1.41,1.41,0,0,0,0,.43c0,.17.06.4.09.6a2.45,2.45,0,0,1,.11.48c0,.2-.11.3-.11.48A3.21,3.21,0,0,0,7,16.68c0-.28.08-.92.09-1.2a1.84,1.84,0,0,1,.1-.83c.11-.21.32-.34.44-.54s.19-.57.46-.37a.18.18,0,0,0,0,.08c.26.2.39.29.7.21a4.85,4.85,0,0,1,.61-.22c.21,0,.15,0,.32.11a3.11,3.11,0,0,0,1.41.29,1.88,1.88,0,0,0,.93,0,1.26,1.26,0,0,1-.23-.35c.19.1.43,0,.6.12s.23.56.46.68C12.73,14.78,12.9,16.1,13,16.54Z"/><rect x="19.12" y="10.35" width="14.79" height="2.21"/><rect x="19.12" y="14.17" width="5.96" height="2.21"/><rect x="19.12" y="19.2" width="14.79" height="2.21"/><rect x="19.12" y="23.02" width="9.96" height="2.21"/></svg>
+    <a href='#' class='tooltips'>
+        <span>Create PPT Deck</span>
+        <svg class='vidclip-handler' data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41.79 31.88"><title>make_deck</title><path d="M41.79,27.37H37.73a.94.94,0,0,1,0-1.87h2.19V1.88H6.38V4A.94.94,0,0,1,4.5,4V0H41.79Z"/><path d="M35.41,31.88H0V6.38H35.41ZM1.88,30H33.53V8.25H1.88Z"/><path d="M16.89,25.78a1.93,1.93,0,0,0-1.15-1.54c-1.05-.42-3.65-1.33-3.65-1.33A2.26,2.26,0,0,1,10,24.28a2.26,2.26,0,0,1-2.14-1.36s-2.9.91-4,1.33a1.93,1.93,0,0,0-1.15,1.54Z"/><path d="M12.1,22.92A2.26,2.26,0,0,1,10,24.28a2.26,2.26,0,0,1-2.14-1.36v-1.5H12.1Z"/><path d="M10.23,13.11c3,0,2.64,4.71,2.64,4.71a24.73,24.73,0,0,1-.1,3c-.14.45-1.05,2.27-2.78,2.27s-2.65-1.82-2.78-2.27a24.73,24.73,0,0,1-.1-3s-.31-4.71,2.64-4.71Z"/><path d="M7.11,17.85a.6.6,0,0,0-.37-.2c-.24,0-.34.35-.17.66s.24.38.17.59.08.48.37.35C7.1,18.61,7.11,18,7.11,17.85Z"/><path d="M13.27,17.65a.63.63,0,0,0-.39.22c0,.16,0,.76,0,1.38.31.15.46-.14.39-.34s0-.28.17-.59S13.5,17.65,13.27,17.65Z"/><path d="M12.77,18l.18,0a9.17,9.17,0,0,1,.13-1.77c.08-.51.12-1.37-.22-1.69a.29.29,0,0,0,.14-.25,2.13,2.13,0,0,0-.56-.65c-.25-.18-.81-.13-1-.41.08-.11.23-.07.33-.16a2.82,2.82,0,0,0-1.28-.05c-.15,0-.3.15-.44.18s-.27,0-.41,0a1.29,1.29,0,0,0,.33-.27,1.94,1.94,0,0,0-.71,0c-.21,0-.46,0-.66.07a1.88,1.88,0,0,0-.37.32,3.25,3.25,0,0,1-.62.34,1.09,1.09,0,0,0-.58.59,3.66,3.66,0,0,0-.3.92,1.32,1.32,0,0,0,0,.4c0,.16.05.38.08.56a2.29,2.29,0,0,1,.1.45c0,.19-.1.28-.11.45a3,3,0,0,0,.34,1.12c0-.26.07-.86.08-1.13a1.72,1.72,0,0,1,.09-.78c.11-.19.3-.32.41-.51s.18-.54.43-.35a.17.17,0,0,0,0,.07c.24.19.36.28.66.2a4.54,4.54,0,0,1,.57-.2c.2,0,.14,0,.3.11a2.92,2.92,0,0,0,1.32.27,1.76,1.76,0,0,0,.88,0,1.18,1.18,0,0,1-.22-.33c.17.1.4,0,.57.11s.21.53.43.64C12.51,16.3,12.66,17.54,12.77,18Z"/><rect x="18.49" y="12.15" width="13.86" height="2.07"/><rect x="18.49" y="15.73" width="5.58" height="2.07"/><rect x="18.49" y="20.45" width="13.86" height="2.07"/><rect x="18.49" y="24.03" width="9.34" height="2.07"/><path d="M38.6,29.62H34.4a.94.94,0,0,1,0-1.87h2.33V5.06H4.13V7.35a.94.94,0,0,1-1.87,0V3.19H38.6Z"/></svg>
+    </a>
 </button>
 
 <!--clip table-->
 <input type="text" id="table-search" onkeyup="filterTable(8)" placeholder="Search clips...">
 <h2>Clips for <a href="/show-video/{{ main_vid.vid_id }}" target='_blank'>{{ main_vid.vid_name }}</a></h2>
+
 <table data-toggle="table" class="table table-responsive" id="clip-table">
     <tr>
         <th><input type='checkbox' class='cbox' id="select-all"></th>
@@ -93,18 +133,24 @@
     {% endfor %}
 </table>
 
+<script src="{{url_for ('static', filename='js/collectChecks.js') }}"></script>
+
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
 <script src='../static/js/sockets.js'></script>
 
 <script>
 
-$('#alerts').hide()
+$('#alerts').hide();
+
+//hide the video handling buttons at start
+hideVidButtons();
 
 var successAlert = '<div class="alert alert-success alert-dismissable fade in" id="success-message"><a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a><strong>Success!</strong> Your request has been sent.</div>'
 
+
 </script>
 
-<script src="{{url_for ('static', filename='js/collectChecks.js') }}"></script>
+<script src="{{url_for ('static', filename='js/popUpWindows.js') }}"></script>
 
 <script src="{{url_for ('static', filename='js/showAlert.js') }}"></script>
 

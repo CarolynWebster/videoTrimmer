@@ -1,16 +1,25 @@
-{% extends 'base.html' %}
-{% block title %}Welcome, Please log in{% endblock %}
-{% block content %}
-    <div class='centered'>
-    <img src='static/logo_full.png' height="200"/>
-    </br>
-    </br>
-    <h3>Welcome, please sign in:</h3>
-    </br>
-    <form action="/login" method="POST">
-        <Label class='loginform'>Email: </Label><input class='logininput' type="text" name="email" placeholder="email" required><br/>
-        <Label class='loginform'>Password: </Label><input class='logininput' type="password" name="password" placeholder="password" required></br>
-        <input class='loginbtn' type='submit' value="Log In">
-        <p><a href='/register'><button class='loginbtn' type="button">Register for a new account</button></a></p>
+<html>
+<head>
+    <title>Welcome, Please log in</title>
+
+    <link href="https://fonts.googleapis.com/css?family=Muli|Oswald" rel="stylesheet">
+    <script src="https://use.fontawesome.com/d24120a7b5.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vidtrim_style.css') }}">
+</head>
+<body id='film-reel'>
+    <div id="container">
+        <div class='centered'>
+        <img src='static/logo_full.png' height="200"/>
+        </br>
+        </br>
+            <form action="/login" method="POST">
+                <h2>Welcome, Please Sign In:</h2>
+                <input class='logininput' type="text" name="email" placeholder="email" required><br/>
+                <input class='logininput' type="password" name="password" placeholder="password" required><br/></br>
+                <input class='loginbtn' type='submit' value="Log In"></br>
+                <a href='/register'><button class='loginbtn' type="button">Register for a new account</button></a>
+            </form>
+        </div>
     </div>
-{% endblock %}
+</body>
+</html>

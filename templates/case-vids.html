@@ -12,22 +12,50 @@
 <div class='case-banner'>
     <h1 class='case-name'>
         <a href = "../cases/{{ case.case_id }}">{{ case.case_name }}</a>
-        <i class="fa fa-cog case-gear" aria-hidden="true"></i>
-        <i class="fa fa-comments-o case-gear" aria-hidden="true"></i> 
     </h1>
+
+    <!--case settings btn-->
+    <button type="button" id='settings' class='clear-btn case-gear' value="{{ case.case_id }}">
+        <a href="#" class='tooltips'>
+            <span>Case Settings</span>
+        <h1 class='case-name'>
+            <i class="fa fa-cog" aria-hidden="true"></i>
+        </h1></a>
+    </button>
+        
+    <!--case messages btn-->
+    <button type="button" id='messages' class='clear-btn case-gear' value="{{ case.case_id }}">
+        <a href="#" class='tooltips'>
+            <span>Case Messages</span>
+        <h1 class='case-name'>
+            <i class="fa fa-comments-o" aria-hidden="true"></i>
+        </h1></a>
+    </button>
 </div>
 <div class='accent-bar'></div>
-<p><a href='/case-settings/{{ case.case_id}}'>Case Dashboard</a></p>
-<a href="/upload-video?case_id={{ case.case_id }}"><button>Upload a new video</button></a>
-<!-- <button type="button" id='downloadClips' value="Download">Download Videos</button>
-<button type="button" id='deleteClips' value="Delete">Delete Videos</button> -->
+
+<!--Upload new video-->
+<a href="/upload-video?case_id={{ case.case_id }}" class='tooltips'>
+    <span>Upload Video</span>
+    <button class='clear-btn small-btn'>
+        <svg class='vidclip-handler' data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31.19 32"><title>upload</title><path d="M31.19,32H0V21.56a2,2,0,0,1,4,0V28H27.19V21.56a2,2,0,0,1,4,0Z"/><path d="M15.59,25.25a2,2,0,0,1-2-2V8.61a2,2,0,0,1,4,0V23.25A2,2,0,0,1,15.59,25.25Z"/><polygon points="21.58 10.36 15.59 0 9.61 10.36 21.58 10.36"/></svg>
+    </button></a>
 
 <!--download individual files-->
-<button type="button" id='downloadClips' value="Download" class='clear-btn small-btn'>
-    <svg class="vidclip-handler" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 32.81"><title>download</title><path d="M30,32.81H0V23a1.41,1.41,0,0,1,2.81,0v7H27.19V23A1.41,1.41,0,0,1,30,23Z"/><path d="M15,23a1.41,1.41,0,0,1-1.41-1.41V1.41a1.41,1.41,0,0,1,2.81,0V21.6A1.41,1.41,0,0,1,15,23Z"/><polygon points="10.79 20.37 15 27.66 19.21 20.37 10.79 20.37"/></svg></button>
-<!--delete btn-->
-<button type="button" id='deleteClips' value="Delete" class='clear-btn small-btn'><svg class="vidclip-handler" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 27.1 30"><title>delete</title><path d="M25.4,6.29h-4.6V2.42A2.42,2.42,0,0,0,18.39,0H8.71A2.42,2.42,0,0,0,6.29,2.42V6.29H1.69a1.69,1.69,0,0,0,0,3.39H2.9v17.9H3A2.49,2.49,0,0,0,5.46,30H21.64a2.49,2.49,0,0,0,2.48-2.42h.08V9.68H25.4a1.69,1.69,0,0,0,0-3.39ZM9.19,25.65a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0Zm5.81,0a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0Zm5.81,0a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0ZM9.19,4.35A1.45,1.45,0,0,1,10.65,2.9h5.81A1.45,1.45,0,0,1,17.9,4.35V6.29H9.19Z"/></svg></button>
+<a href="#" class='tooltips'>
+    <span>Download Video(s)</span>
+    <button type="button" id='downloadClips' value="Download" class='clear-btn small-btn'>
+        <svg class='vidclip-handler' data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31.19 32"><title>download</title><path d="M31.19,32H0V21.56a2,2,0,0,1,4,0V28H27.19V21.56a2,2,0,0,1,4,0Z"/><path d="M15.59,19.64a2,2,0,0,1-2-2V2a2,2,0,0,1,4,0V17.64A2,2,0,0,1,15.59,19.64Z"/><polygon points="9.61 15.89 15.59 26.25 21.58 15.89 9.61 15.89"/></svg>
+    </button></a>
 
+<!--delete btn-->
+<a href="#" class='tooltips'>
+    <span>Delete Video(s)</span>
+    <button type="button" id='deleteClips' value="Delete" class='clear-btn small-btn'>
+        <svg class="vidclip-handler" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 27.1 30"><title>delete</title><path d="M25.4,6.29h-4.6V2.42A2.42,2.42,0,0,0,18.39,0H8.71A2.42,2.42,0,0,0,6.29,2.42V6.29H1.69a1.69,1.69,0,0,0,0,3.39H2.9v17.9H3A2.49,2.49,0,0,0,5.46,30H21.64a2.49,2.49,0,0,0,2.48-2.42h.08V9.68H25.4a1.69,1.69,0,0,0,0-3.39ZM9.19,25.65a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0Zm5.81,0a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0Zm5.81,0a1.45,1.45,0,0,1-2.9,0V12.58a1.45,1.45,0,0,1,2.9,0ZM9.19,4.35A1.45,1.45,0,0,1,10.65,2.9h5.81A1.45,1.45,0,0,1,17.9,4.35V6.29H9.19Z"/></svg>
+    </button></a>
+
+<!--List of videos-->
 <input type="text" id="table-search" onkeyup="filterTable(5)" placeholder="Search...">
 <table data-toggle="table" class="table table-sortable" id="clip-table">
     <thead>
@@ -45,14 +73,12 @@
                 <span class='glyphicon glyphicon-sort'></span></th>
             <th class='center-column'>Trim new</th>
             <th class='center-column'>See existing</th>
-
         </tr>
     </thead>
     {% for video in videos %}
     <tbody>
         <tr>
             <!--case name-->
-            <!--video comes in tuples (video[0] = vid_name, video[1] = vid_id, video[2] = vid_status)-->
             <td><input type='checkbox' class='vidcheck' value={{ video.vid_id }}></td>
             <td>{{ video.deponent }}</td>
             <td>{{ video.recorded_at }}</td>
@@ -94,6 +120,13 @@
 <script src="{{ url_for('static', filename='js/collectChecks.js') }}"></script>
 <script src="{{ url_for('static', filename='js/getCurrTime.js') }}"></script>
 <script src="{{url_for ('static', filename='js/showAlert.js') }}"></script>
+
+<script src="{{url_for ('static', filename='js/popUpWindows.js') }}"></script>
+
+<script>
+//hide the video handling buttons at start
+hideVidButtons();
+</script>
 
 <!--Transcript upload/removal-->
 <script src="{{ url_for('static', filename='js/transcript.js') }}"

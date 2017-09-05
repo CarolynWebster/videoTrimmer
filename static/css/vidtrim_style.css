@@ -6,7 +6,7 @@ h1, h2, h3, h4 {
   font-family: 'Oswald', sans-serif;
 }
 
-p, span, button{
+p, span, button, label, table {
   font-family: 'Muli', sans-serif;
 }
 .btn-circle {
@@ -107,6 +107,7 @@ p, span, button{
   display: inline;
   fill: #7f7f7f;
   height: 30px;
+  margin-top: 10px;
 }
 /*button i {
   text-align: right;
@@ -145,12 +146,17 @@ table.sortable thead {
 }
 
 .loginform {
-  width: 80px;
   text-align: left;
+  margin-top: 10px;
 }
 
+
 .logininput {
-  width: 200px;
+  padding: 8px;
+  display: inline-block;
+  border: none;
+  border-bottom: 1px solid #ccc;
+  width: 30%;
 }
 
 .loginbtn {
@@ -174,7 +180,7 @@ table.sortable thead {
 
 .case-mess {
   border: 2px solid gray;
-  width: 95%;
+  width: 99%;
   padding: 5px;
   margin: 2px;
   border-radius: 10px;
@@ -217,46 +223,59 @@ body {
   margin-left: -15px;
 }
 
-#table-search{
+#table-search, .right-btn {
   float: right;
+  width: 200px;
+  margin-top: 10px;
+}
+
+/*tooltip css created using http://www.cssportal.com/css-tooltip-generator/*/
+a.tooltips {
+  position: relative;
+  display: inline;
+}
+a.tooltips span {
+  position: absolute;
+  width:140px;
+  color: #212121;
+  background: #D1D1D1;
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  visibility: hidden;
+  border-radius: 6px;
+}
+a.tooltips span:after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -8px;
+  width: 0; height: 0;
+  border-top: 8px solid #D1D1D1;
+  border-right: 8px solid transparent;
+  border-left: 8px solid transparent;
+}
+a:hover.tooltips span {
+  visibility: visible;
+  bottom: 45px;
+  left: 58%;
+  margin-left: -76px;
+  z-index: 999;
+}
+
+html {
+  height: 100%;
+}
+
+#login {
   width: 200px;
 }
 
-.tooltip {
-    position: relative;
-    display: inline-block;
-    border-bottom: 1px dotted black; /* If you want dots under the hoverable text */
-}
-
-.tooltip .tooltiptext {
-    width: 120px;
-    bottom: 100%;
-    left: 50%; 
-    margin-left: -60px; /* Use half of the width (120/2 = 60), to center the tooltip */
-}
-
-/* Tooltip text */
-.tooltip .tooltiptext {
-    visibility: hidden;
-    width: 120px;
-    background-color: black;
-    color: #fff;
-    text-align: center;
-    padding: 5px 0;
-    border-radius: 6px;
- 
-    /* Position the tooltip text - see examples below! */
-    position: absolute;
-    z-index: 1;
-}
-
-/* Show the tooltip text when you mouse over the tooltip container */
-.tooltip:hover .tooltiptext {
-    visibility: visible;
-}
-
-/*body {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), 
-                    url('../film_bg.jpg');
+#film-reel {
+  background-image: url('../film7.jpg');
+  height: 100%;
+  background-position: center;
   background-repeat: no-repeat;
-}*/
+  background-size: cover;
+}

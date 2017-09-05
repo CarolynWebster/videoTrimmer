@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Case Settings{% endblock %}
+
+{% block addToHead %}
+<script>
+    var currUser = {{g.current_user.user_id}};
+    var currCaseID = {{ case.case_id }}
+</script>{% endblock %}
+
+{% block content %}
+<div class='case-banner'>
+    <h1 class='case-name'><a href = "../cases/{{ case.case_id }}">{{ case.case_name }}</a></h1>
+</div>
+<div class='accent-bar'></div>
+<div>
+    <div id='case-messages'>
+        <h2>Case messages</h2>
+        <textarea id='new-message' class='settings-input mess-window' placeholder='Send team message'></textarea>
+    </br>
+        <button id='send-message' class='gray-btn med-btn'>Send</button>
+        <div id='all-messages' class='mess-window'>
+            {% for mess in case_mess %}
+                <div class='case-mess' aria-label="Close" id="div_{{mess.mess_id}}">
+                    {% if mess.user_id == g.current_user.user_id %}
+                        <button class='mess-remove close' id={{mess.mess_id}}><span aria-hidden="true">&times;</span></button>
+                    {% endif %}
+                    <strong>{{ mess.user.fname }} {{ mess.user.lname }}</strong>
+                </br>
+                    {{ mess.text }}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+    
+
+<!--SOCKET IO CHAT-->
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+<script src='../static/js/sockets.js'></script>
+<script src='../static/js/socketMessage.js'></script>
+
+<!--Get a current time stamp for file naming-->
+<script src='../static/js/getCurrTime.js'></script>
+<!--adding/removing tags/downloading clips by tag-->
+<script src='../static/js/tags.js'></script>
+<!--Adding/deleting users-->
+<script src='../static/js/caseUsers.js'></script>
+
+{% endblock %}
