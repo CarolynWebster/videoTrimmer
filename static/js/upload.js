@@ -1,3 +1,7 @@
+// adapted from:
+// https://stackoverflow.com/questions/19126994/what-is-the-cleanest-way-to-get-the-progress-of-jquery-ajax-request
+// http://christopher5106.github.io/web/2015/12/13/HTML5-file-image-upload-and-resizing-javascript-with-progress-bar.html
+
 $(document).ready(function() {
 
 	$('form').on('submit', function(event) {

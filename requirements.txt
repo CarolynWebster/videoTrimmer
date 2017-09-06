@@ -7,12 +7,16 @@ click==6.7
 colorama==0.3.7
 decorator==4.0.11
 docutils==0.14
+enum-compat==0.0.2
+enum34==1.1.6
+eventlet==0.21.0
 Flask==0.12.2
 Flask-DebugToolbar==0.10.1
 Flask-SocketIO==2.9.2
 Flask-SQLAlchemy==2.2
 futures==3.1.1
 google-api-python-client==1.6.2
+greenlet==0.4.12
 httplib2==0.10.3
 imageio==2.1.2
 itsdangerous==0.24
