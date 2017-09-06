@@ -57,8 +57,7 @@
 
 <!--List of videos-->
 <input type="text" id="table-search" onkeyup="filterTable(5)" placeholder="Search...">
-<table data-toggle="table" class="table table-sortable" id="clip-table">
-    <thead>
+<table data-toggle="table" class="table table-striped table-responsive" id="clip-table">
         <tr>
             <th><input type='checkbox' id="select-all"></th>
             <th onclick="sortTable(1)">Deponent 
@@ -74,9 +73,7 @@
             <th class='center-column'>Trim new</th>
             <th class='center-column'>See existing</th>
         </tr>
-    </thead>
     {% for video in videos %}
-    <tbody>
         <tr>
             <!--case name-->
             <td><input type='checkbox' class='vidcheck' value={{ video.vid_id }}></td>
@@ -93,19 +90,18 @@
             </td>
             <td class='center-column'>
                 {% if video.transcript %}
-                    <i class="fa fa-file-text tscriptTrue" aria-hidden="true" id='{{ video.vid_id }}'></i>
+                    <i class="fa fa-file-text tscriptTrue blue-text" aria-hidden="true" id='{{ video.vid_id }}'></i>
                 {% else %}
                     <i class="fa fa-file-text tscriptFalse" aria-hidden="true" id='{{ video.vid_id }}'></i>
                 {% endif %}
             </td>
-            <td class='center-column'><a href = '/trim-video/{{ video.vid_id }}'><i class="fa fa-scissors" aria-hidden="true"></i></a></td>
+            <td class='center-column '><a href = '/trim-video/{{ video.vid_id }}'><i class="fa fa-scissors blue-text" aria-hidden="true"></i></a></td>
             <td class='center-column'><a href = '/clips/{{ video.vid_id }}'>
-                <i class="fa fa-film" aria-hidden="true"></i> 
-                <i class="fa fa-search" aria-hidden="true"></i></a>
+                <i class="fa fa-film blue-text" aria-hidden="true"></i> 
+                <i class="fa fa-search blue-text" aria-hidden="true"></i></a>
             </td>
         </tr>
         {% endfor %}
-    </tbody>
 </table>
 
 <!--JS-->

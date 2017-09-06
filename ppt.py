@@ -103,7 +103,7 @@ def create_slide_deck(template, clips, vid_name, curr_time):
         title_placeholder = slide.shapes.title
         title_placeholder.text = deponent
 
-    prs.save(pres_name)
+    prs.save('static/ppts/'+pres_name)
 
 
 def find_text_by_page_line(start_pl, end_pl, source):

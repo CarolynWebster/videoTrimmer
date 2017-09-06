@@ -2,13 +2,9 @@
 {% block title %}Case List{% endblock %}
 
 {% block content %}
-<a href="/register-case"><button>Register a new case</button></a>
+<a href="/register-case"><button class='gray-btn med-btn'>Register a new case</button></a>
+<h2>Cases:</h2>
 <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>Case Name</th>
-      </tr>
-    </thead>
     {% for case in cases %}
     <tr>
         <!--case name-->

@@ -1,5 +1,5 @@
 a {
-  color: #7f9cc8;
+  color: #337ab7;
 }
 
 h1, h2, h3, h4 {
@@ -20,12 +20,15 @@ p, span, button, label, table {
 }
 
 .tag-btn {
-    background-color: #efefef;
+    /*background-color: #efefef;*/
+    background-color: rgba(255, 255, 255, 0);
+    border: 2px solid #337ab7;
     border-radius: 6px;
     width: 100px;
     text-align: left;
-    border-style: none;
+    /*border-style: none;*/
     margin: 3px;
+    color: #212121;
 }
 
 .tag-close {
@@ -49,13 +52,17 @@ p, span, button, label, table {
 }
 
 .blue-btn {
-  background-color: #7f9cc8;
+  background-color: #337ab7;
   text-align: center;
   border-radius: 3px;
   border-style: none;
   margin: 5px;
   color: white;
   width: 100%;
+}
+
+.blue-text {
+  color: #337ab7;
 }
 
 .clear-btn {
@@ -112,10 +119,6 @@ p, span, button, label, table {
 /*button i {
   text-align: right;
 }*/
-
-.tscriptTrue {
-  color: #033077;
-}
 
 .tscriptFalse {
   color: #cccccc;

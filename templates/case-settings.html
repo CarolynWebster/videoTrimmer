@@ -12,6 +12,9 @@
     <h1 class='case-name'><a href = "../cases/{{ case.case_id }}">{{ case.case_name }}</a></h1>
 </div>
 <div class='accent-bar'></div>
+
+<div id='alerts'><div class="alert alert-success alert-dismissable" id="success-message"><a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a><strong>Success!</strong> Your request has been sent.</div></div>
+
 <div>
     <h2>Tags</h2>
     
@@ -78,6 +81,13 @@
     <button id='add_users' class='gray-btn med-btn right-btn'>Add users</button>
 
 </div>
+
+<!--alert box-->
+<script src="{{url_for ('static', filename='js/showAlert.js') }}"></script>
+<script>
+    $('#alerts').hide();
+    var successAlert = '<div class="alert alert-success alert-dismissable fade in" id="success-message"><a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a><strong>Success!</strong> Your request has been sent.</div>'
+</script>
 
 <!--SOCKET IO CHAT-->
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>

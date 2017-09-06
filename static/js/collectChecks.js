@@ -64,9 +64,11 @@ function toggleChecks(evt) {
                 all_cboxes[c].checked = true;
             }
         }
+        showVidButtons();
     }
     else {
         all_cboxes.prop('checked', false);
+        hideVidButtons();
     }
 
 }

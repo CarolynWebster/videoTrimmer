@@ -6,7 +6,7 @@
     <form action"/register-case" method="POST" id='case-reg'>
         <Label>Case Name*: </Label><input type="text" name="case_name" placeholder="Case name (Us v. Them" required/><br/>
         <Label>Other users allowed access to this case - enter email(s): </Label></br>
-        <textarea name="user-list" form="case-reg" placeholder="jane@firmname.com, john@otherfirm.com"></textarea>
-        <input type='submit' value="Register Case">
+        <textarea name="user-list" form="case-reg" placeholder="jane@firmname.com, john@otherfirm.com"></textarea></br>
+        <input class='gray-btn med-btn' type='submit' value="Register Case">
         <p>Fields with a * are required</p>
 {% endblock %}

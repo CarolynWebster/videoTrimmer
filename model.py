@@ -54,6 +54,7 @@ class Case(db.Model):
     owner_id = db.Column(db.Integer, nullable=True)
     case_name = db.Column(db.String(100), nullable=False)
 
+    usercases = db.relationship('UserCase', cascade='delete')
     users = db.relationship('User', secondary="usercases", backref="cases")
     case_messages = db.relationship('CaseMessage', backref='case', cascade='delete')
 
@@ -72,7 +73,7 @@ class UserCase(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     case_id = db.Column(db.Integer, db.ForeignKey('cases.case_id'))
 
-    case = db.relationship("Case", backref='usercases')
+    # case = db.relationship("Case", backref='usercases')
 
     def __repr__(self):
         """Provide case/user connection"""

@@ -16,6 +16,7 @@ function handleTaggedClips(evt){
 
     $.post('/handle-clips', formInputs, function() {
         console.log('request complete');
+        $('#success-message').fadeOut();
     });
 }
 
