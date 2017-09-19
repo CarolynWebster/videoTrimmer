@@ -35,10 +35,16 @@ from flask_socketio import SocketIO, send, emit, join_room, leave_room
 
 import json
 
+from flask_session import Session
+
 import eventlet
+
 eventlet.monkey_patch()
 
 app = Flask(__name__)
+
+app.config['SESSION_TYPE'] = 'filesystem'
+Session(app)
 
 # AWS_ACCESS_KEY = os.environ['AWS_ACCESS_KEY']
 # AWS_SECRET_KEY = os.environ['AWS_SECRET_KEY']
@@ -51,18 +57,24 @@ BUCKET_NAME = 'videotrim'
 app.secret_key = "ABC"
 
 app.jinja_env.undefined = StrictUndefined
-socketio = SocketIO(app, async_mode='eventlet')
+socketio = SocketIO(app, async_mode='eventlet', manage_session=False)
 
 # BEFORE REQUEST/LOGIN WRAPPER -------------------------------------------------
 
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if g.current_user is None:
-            # if the user isn't logged in - reroute to homepage/login page
-            flash('You have to be logged in to see that content')
-            return redirect(url_for('homepage', next=request.url))
-        return f(*args, **kwargs)
+        # get the user id from the session
+        user_id = session.get('user_id')
+
+        # if there is an id in the session - get the user object
+        if user_id:
+            g.current_user = User.query.get(user_id)
+            if g.current_user is None:
+                # if the user isn't logged in - reroute to homepage/login page
+                flash('You have to be logged in to see that content')
+                return redirect(url_for('homepage', next=request.url))
+            return f(*args, **kwargs)
     return decorated_function
 
 
@@ -265,7 +277,7 @@ def show_case_messages(case_id):
         flash("You don't have permission to view that case")
         return redirect('/cases')
 
-@socketio.on('join', namespace='chat')
+@socketio.on('join', namespace='/chat')
 def on_join(json_data):
     print "\n\n\n\n\n\n JOINING \n\n\n\n"
     # user_id = g.current_user.user_id
@@ -280,38 +292,32 @@ def blah():
 
 # @app.route('/send-casemessage', methods=["POST"])
 @socketio.on('send-casemessage', namespace='/chat')
-# @login_required
+@login_required
 def send_casemessage(json_data):
     """Posts a message on the case settings page"""
 
     data = json.loads(json_data)
     case_id = data['case_id']
-    mess_text = data['new_mess']
 
-    response = add_message(case_id, mess_text)
-    if response:
+    # check if the user has permission to view this case
+    user_permitted = validate_usercase(case_id, g.current_user.user_id)
+
+    if user_permitted:
+        mess_text = data['new_mess']
+
+        new_mess = CaseMessage(user_id=g.current_user.user_id, case_id=case_id, text=mess_text)
+        db.session.add(new_mess)
+        db.session.commit()
+
+        response = {
+            'user_name': g.current_user.fname + " " + g.current_user.lname,
+            'mess_text': mess_text,
+            'mess_id': new_mess.mess_id,
+            'user_id': g.current_user.user_id,
+        }
         emit('new casemessage', response, namespace='/chat', room=case_id)
+
         return jsonify(response)
-
-
-def add_message(case_id, mess_text):
-    with app.app_context:
-        # check if the user has permission to view this case
-        user_permitted = validate_usercase(case_id, g.current_user.user_id)
-
-        if user_permitted:
-            new_mess = CaseMessage(user_id=g.current_user.user_id, case_id=case_id, text=mess_text)
-            db.session.add(new_mess)
-            db.session.commit()
-
-            response = {
-                'user_name': g.current_user.fname + " " + g.current_user.lname,
-                'mess_text': mess_text,
-                'mess_id': new_mess.mess_id,
-                'user_id': g.current_user.user_id,
-            }
-
-            return response
 
 
 @app.route('/remove-casemessage', methods=["POST"])
