@@ -31,9 +31,12 @@ from tags import get_tags, add_tags, delete_cliptags, get_tagged_clips
 from videos import upload_aws_db, download_from_aws, get_vid_url
 from videos import add_clip_to_db, make_clip_ppt, download_all_files, delete_all_files
 
-from flask_socketio import SocketIO, send, emit
+from flask_socketio import SocketIO, send, emit, join_room, leave_room
 
 import json
+
+import eventlet
+eventlet.monkey_patch()
 
 app = Flask(__name__)
 
@@ -48,7 +51,7 @@ BUCKET_NAME = 'videotrim'
 app.secret_key = "ABC"
 
 app.jinja_env.undefined = StrictUndefined
-socketio = SocketIO(app, async_mode='threading')
+socketio = SocketIO(app, async_mode='eventlet')
 
 # BEFORE REQUEST/LOGIN WRAPPER -------------------------------------------------
 
@@ -262,32 +265,54 @@ def show_case_messages(case_id):
         flash("You don't have permission to view that case")
         return redirect('/cases')
 
+@socketio.on('join', namespace='chat')
+def on_join(json_data):
+    print "\n\n\n\n\n\n JOINING \n\n\n\n"
+    # user_id = g.current_user.user_id
+    data = json.loads(json_data)
+    case_id = data['case_id']
+    print data, case_id
+    join_room(case_id)
+    send('You have entered the message channel.', room=case_id, callback=blah)
 
-@app.route('/send-casemessage', methods=["POST"])
-@login_required
-def send_casemessage():
+def blah():
+    print "sent"
+
+# @app.route('/send-casemessage', methods=["POST"])
+@socketio.on('send-casemessage', namespace='/chat')
+# @login_required
+def send_casemessage(json_data):
     """Posts a message on the case settings page"""
 
-    case_id = request.form.get('case_id')
-    # check if the user has permission to view this case
-    user_permitted = validate_usercase(case_id, g.current_user.user_id)
+    data = json.loads(json_data)
+    case_id = data['case_id']
+    mess_text = data['new_mess']
 
-    if user_permitted:
-        mess_text = request.form.get('new_mess')
-
-        new_mess = CaseMessage(user_id=g.current_user.user_id, case_id=case_id, text=mess_text)
-        db.session.add(new_mess)
-        db.session.commit()
-
-        response = {
-            'user_name': g.current_user.fname + " " + g.current_user.lname,
-            'mess_text': mess_text,
-            'mess_id': new_mess.mess_id,
-            'user_id': g.current_user.user_id,
-        }
-        socketio.emit('new casemessage', response)
-
+    response = add_message(case_id, mess_text)
+    if response:
+        emit('new casemessage', response, namespace='/chat', room=case_id)
         return jsonify(response)
+
+
+def add_message(case_id, mess_text):
+    with app.app_context:
+        # check if the user has permission to view this case
+        user_permitted = validate_usercase(case_id, g.current_user.user_id)
+
+        if user_permitted:
+            new_mess = CaseMessage(user_id=g.current_user.user_id, case_id=case_id, text=mess_text)
+            db.session.add(new_mess)
+            db.session.commit()
+
+            response = {
+                'user_name': g.current_user.fname + " " + g.current_user.lname,
+                'mess_text': mess_text,
+                'mess_id': new_mess.mess_id,
+                'user_id': g.current_user.user_id,
+            }
+
+            return response
+
 
 @app.route('/remove-casemessage', methods=["POST"])
 @login_required

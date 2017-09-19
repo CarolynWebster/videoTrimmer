@@ -33,15 +33,15 @@ function check_file_updates() {
         }
     });
 
-    socket.on('new casemessage', function(results){
-        console.log(results);
-        showNewMessage(results);
-    });
+    // socket.on('new casemessage', function(results){
+    //     console.log(results);
+    //     showNewMessage(results);
+    // });
 
-    socket.on('remove casemessage', function(results){
-        console.log(results);
-        $('#div_'+results).remove()
-    });
+    // socket.on('remove casemessage', function(results){
+    //     console.log(results);
+    //     $('#div_'+results).remove()
+    // });
 }
 
 check_file_updates();
