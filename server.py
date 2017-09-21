@@ -433,10 +433,8 @@ def show_user_settings():
                 user.email = email
 
             if password != "":
-                hashed_pass = pwd_context.hash(password)
-                user.password = hashed_pass
-
-            print "\n\n\n\n\n UPDATING USER \n\n\n\n\n"
+                # hash the password first
+                user.password = pwd_context.hash(password)
 
             db.session.commit()
 
