@@ -1,3 +1,6 @@
+## Demo
+embed_url("https://www.youtube.com/watch?v=uV4UpCq2azs")
+
 ## Synopsis
 
 Cut to the Point is a video trimming app built with the legal industry in mind. A user can upload deposition videos and trim out clips based on timecodes or page/line numbers, which is how transcripts are often cited. Clips can then be tagged for different phases of trial. They can be downloaded as a merged highlight reel, a zip of individual clips, or a PowerPoint deck. If the user provides a transcript, the matching transcript text can also be included on the PowerPoint slides. Cases can have many team members allowing for a division of labor. Case messages are implemented using socket.io which allows team members to quickly communicate case updates. Cut to the Point allows access to premium trial tools without the premium price.
