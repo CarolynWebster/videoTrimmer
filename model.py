@@ -30,7 +30,7 @@ class User(db.Model):
 
     user_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     email = db.Column(db.String(64), nullable=False)
-    password = db.Column(db.String(64))
+    password = db.Column(db.String(150))
     fname = db.Column(db.String(50), default='')
     lname = db.Column(db.String(50), default='Not registered')
 

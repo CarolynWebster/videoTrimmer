@@ -37,6 +37,8 @@ import json
 
 from flask_session import Session
 
+from passlib.apps import custom_app_context as pwd_context
+
 import eventlet
 
 eventlet.monkey_patch()
@@ -420,7 +422,6 @@ def show_user_settings():
             email = request.form.get('email')
             password = request.form.get('pass')
 
-            print password
 
             if user.fname != fname:
                 user.fname = fname
@@ -432,7 +433,8 @@ def show_user_settings():
                 user.email = email
 
             if password != "":
-                user.password = password
+                hashed_pass = pwd_context.hash(password)
+                user.password = hashed_pass
 
             print "\n\n\n\n\n UPDATING USER \n\n\n\n\n"
 
@@ -462,7 +464,9 @@ def handle_login():
 
     # if user already exists check the password
     if user_check:
-        if user_check.password == password:
+        # verify_pass = pwd_context.verify(password, hashed_pass)
+        if pwd_context.verify(password, user_check.password):
+        # if user_check.password == verify_pass:
             #set flash message telling them login successful
             # flash("You have successfully logged in")
             #add user's ID num to the session
@@ -511,13 +515,14 @@ def register_user():
         email = request.form.get("email")
         password = request.form.get("password")
 
+        hashed_pass = pwd_context.hash(password)
         # check if user exists in db already
         # this would happen if they were added to a case
         # but haven't actually registered yet
         user_check = User.query.filter_by(email=email).first()
 
         # create user or update the existing unregistered
-        create_user(user_check, email, fname, lname, password)
+        create_user(user_check, email, fname, lname, hashed_pass)
 
         # send them to their own page
         return "Success"
