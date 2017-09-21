@@ -1,5 +1,6 @@
 ## Demo
-embed_url("https://www.youtube.com/watch?v=uV4UpCq2azs")
+[![Splash Page](http://carolynwebster.com/images/cut_to_the_point.jpg)](https://vimeo.com/234928337)
+
 
 ## Synopsis
 
