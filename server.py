@@ -846,6 +846,7 @@ def get_clip_source():
         # get the clip list from the form
         clip_list = request.form.get('clip-list')
         clips = clip_list.split(", ")
+        print "clips:", clips
 
         # get if the user is using timecodes or page-line nums
         trim_method = request.form.get('trim_method')
@@ -864,6 +865,7 @@ def get_clip_source():
 
         # add the clips to the db - they will show up as processing until they are complete
         for clip in clips:
+            print clip_name_base
             # creates an instance of the clip in the db and returns new clip_id
             # if the clip exists already - None is returned
             db_clip = add_clip_to_db(clip, clip_name_base, file_ext, vid_id,
@@ -871,10 +873,9 @@ def get_clip_source():
             # if a new clip was made 
             if db_clip:
                 clips_to_process.append(Clip.query.get(db_clip))
-
+        print clips_to_process
         # send the upload to a separate thread to upload while the user moves on
         download = threading.Thread(target=download_from_aws, args=(save_loc, clips_to_process, vid_id, user_id, vid_name, socketio)).start()
-
         return redirect('/clips/{}'.format(vid_id))
     else:
         flash("You don't have permission to view that case")
@@ -960,8 +961,7 @@ if __name__ == "__main__":
 
     connect_to_db(app)
 
-
     # Use the DebugToolbar
-    # DebugToolbarExtension(app)
+    #DebugToolbarExtension(app)
     socketio.run(app, port=5000, host='0.0.0.0')
     # app.run(port=5000, host='0.0.0.0')

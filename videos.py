@@ -108,9 +108,6 @@ def add_clip_to_db(clip, clip_name_base, file_ext, vid_id, user_id, trim_method)
     # get just the filename for the aws key
     key_name = clip_name[clip_name.rfind('/')+1:]
 
-    # start connection with db
-    # db.session = db_session()
-
     #check if the clip exists already
     clip_check = db.session.query(Clip).filter(Clip.clip_name == key_name).first()
 
@@ -127,13 +124,9 @@ def add_clip_to_db(clip, clip_name_base, file_ext, vid_id, user_id, trim_method)
 
         clip_id = db_clip.clip_id
 
-        # db_session.remove()
         # we return the clip if we made one
         # None is returned if clip existed already
         return clip_id
-
-    # close down db session
-    # db_session.remove()
 
     # return None if clip existed already
     return None
@@ -165,7 +158,6 @@ def pull_text(clips, vid_id):
 
     # list to hold all pull tuples
     all_pulls = []
-    print "\n\n\n\n\n", db.session, "\n\n\n\n\n"
     # get the transcript for the selected video
     transcript = scoped_session.query(Transcript).filter(Transcript.vid_id == vid_id).first()
 
