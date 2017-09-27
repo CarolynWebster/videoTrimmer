@@ -19,9 +19,13 @@ function check_file_updates() {
         var ready_clips = results['clips'];
         console.log(ready_clips);
         for (var j = 0; j < ready_clips.length; j++) {
-            var statusSpan = ready_clips[j] + "_Status";
+            var clip_id = ready_clips[j][0];
+            var start_at = ready_clips[j][1];
+            var end_at = ready_clips[j][2];
+            console.log(clip_id + " : " + start_at  + " : " + end_at);
+            var statusSpan = clip_id + "_Status";
             $('#'+statusSpan).html("Ready");
-            var clipIndex = clips_to_update.clips.indexOf(ready_clips[j]);
+            var clipIndex = clips_to_update.clips.indexOf(clip_id);
             //remove it from the list of clips to check
             if (clipIndex > -1){
                 clips_to_update.clips.splice(clipIndex, 1);
@@ -29,7 +33,7 @@ function check_file_updates() {
         }
         if (clips_to_update.clips.length == 0){
             //socket.off();
-            console.log("socket off");
+            console.log("all available clips are updated");
         }
     });
 

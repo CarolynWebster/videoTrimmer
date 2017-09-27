@@ -100,9 +100,9 @@
         <td><a value="{{ clip.clip_name }}"  href = '/show-clip/{{ clip.clip_id }}' target='_blank'>{{ clip.clip_name }}</a></td>
         <td class='hidden-sm hidden-xs'>{{ clip.duration }}</td>
         
-        <td>{{ clip.start_at }}</td>
+        <td><span id='{{clip.clip_id}}_Start'>{{ clip.start_at }}<span></td>
         
-        <td>{{ clip.end_at }}</td>
+        <td><span id='{{clip.clip_id}}_End'>{{ clip.end_at }}<span></td>
         
         <td class='hidden-sm hidden-xs'>{% if clip.clip_status == 'Processing' %}
                 <span class='clip-processing' id='{{clip.clip_id}}_Status'>
