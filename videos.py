@@ -258,9 +258,9 @@ def file_done(vid_name, socketio):
     # update status and commit the change to the db
     clip.clip_status = 'Ready'
     scoped_session.commit()
-    
+
     ready_clips = {}
-    ready_clips['clips'] = [clip_id]
+    ready_clips['clips'] = [clip_id, clip.start_at, clip.end_at]
     socketio.emit('server update', ready_clips)
 
     # close the session

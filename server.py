@@ -103,24 +103,24 @@ def test_socket():
 
     return render_template('socket.html')
 
-@socketio.on('update_clips')
-def handle_my_custom_event(json_data):
-    print('received json: ' + str(json_data))
-    files_to_update = json.loads(json_data)
-    clips = files_to_update['clips']
-    ready_clips = {}
-    ready_clips['clips'] = []
-    for clip_id in clips:
-        try:
-            clip = Clip.query.get(clip_id)
-            if clip.clip_status == 'Ready':
-                ready_clips['clips'].append(clip_id)
-        except:
-            clip = Video.query.get(clip_id)
-            if clip.vid_status == 'Ready':
-                ready_clips['clips'].append(clip_id)
-    print 'ready clips', ready_clips
-    emit('server update', ready_clips)
+# @socketio.on('update_clips')
+# def handle_my_custom_event(json_data):
+#     print('received json: ' + str(json_data))
+#     files_to_update = json.loads(json_data)
+#     clips = files_to_update['clips']
+#     ready_clips = {}
+#     ready_clips['clips'] = []
+#     for clip_id in clips:
+#         try:
+#             clip = Clip.query.get(clip_id)
+#             if clip.clip_status == 'Ready':
+#                 ready_clips['clips'].append(clip_id)
+#         except:
+#             clip = Video.query.get(clip_id)
+#             if clip.vid_status == 'Ready':
+#                 ready_clips['clips'].append(clip_id)
+#     print 'ready clips', ready_clips
+#     emit('server update', ready_clips)
 
 # HOMEPAGE ---------------------------------------------------------------------
 
@@ -930,7 +930,7 @@ def show_all_clips(vid_id):
 def show_clip(clip_id):
     """Plays the clip in a separate window"""
 
-    # get the clip object 
+    # get the clip object
     clip_to_show = Clip.query.get(clip_id)
     clip_name = clip_to_show.clip_name
 
@@ -942,7 +942,7 @@ def show_clip(clip_id):
     if user_permitted:
         # get temporary url
         url = get_vid_url(clip_name)
-        
+
         return render_template('show-video.html', vid_id=clip_id, orig_vid=clip_name, vid_url=url)
     else:
         flash("You don't have permission to view that case")

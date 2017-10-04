@@ -98,7 +98,7 @@
         <td><input type='checkbox' class='vidcheck' value={{ clip.clip_id }}></td>
         <!-- list value first for sorting purposes-->
         <td><a value="{{ clip.clip_name }}"  href = '/show-clip/{{ clip.clip_id }}' target='_blank'>{{ clip.clip_name }}</a></td>
-        <td class='hidden-sm hidden-xs'>{{ clip.duration }}</td>
+        <td class='hidden-sm hidden-xs'><span id='{{clip.clip_id}}_Duration'>{{ clip.duration }}</span></td>
         
         <td><span id='{{clip.clip_id}}_Start'>{{ clip.start_at }}<span></td>
         
