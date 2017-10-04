@@ -15,10 +15,11 @@ function check_file_updates() {
         socket.emit('update_clips', to_send);
     });
     socket.on('server update', function(results){
-
         var ready_clips = results['clips'];
         console.log(ready_clips);
+        console.log("length", ready_clips)
         for (var j = 0; j < ready_clips.length; j++) {
+            console.log('started')
             var clip_id = ready_clips[j][0];
             var start_at = ready_clips[j][1];
             var end_at = ready_clips[j][2];
